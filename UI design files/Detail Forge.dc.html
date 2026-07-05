@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <style>
+    body{margin:0;background:#17181b;font-family:ui-sans-serif,system-ui,'SF Pro Display','Segoe UI',Roboto,sans-serif;}
+    @keyframes dfpulse{0%,100%{opacity:1}50%{opacity:.3}}
+    button{font-family:inherit;}
+  </style>
+</helmet>
+<section data-turn="1" style="display:flex;flex-wrap:wrap;gap:60px;padding:60px;align-items:flex-start;box-sizing:border-box;">
+
+  <div id="1b" style="display:flex;flex-direction:column;gap:14px;">
+    <div data-screen-label="Detail Forge — Studio Rack" style="width:964px;box-sizing:border-box;padding:22px;border-radius:16px;border:1px solid #2A2E34;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0) 10%),repeating-linear-gradient(90deg,rgba(255,255,255,0.014) 0 2px,rgba(0,0,0,0) 2px 4px),radial-gradient(130% 90% at 50% -10%,#212429,#0D0E11 72%);box-shadow:0 34px 70px -22px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.05);display:flex;gap:14px;">
+
+      <!-- LEFT: channel strip -->
+      <div style="width:404px;flex-shrink:0;display:flex;flex-direction:column;gap:11px;">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:1px;">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L20 12 L12 22 L4 12 Z" fill="none" stroke="#F2953A" stroke-width="1.6"></path><path d="M12 7 L16.5 12 L12 17 L7.5 12 Z" fill="#F2953A"></path></svg>
+          <div style="font:700 15px/1 ui-sans-serif,system-ui;letter-spacing:2.5px;color:#EAF0F4;">DETAIL <span style="color:#F2953A;">FORGE</span></div><span style="font:600 7px/1 ui-monospace,'SF Mono',monospace;letter-spacing:1.5px;color:#363b42;align-self:flex-end;margin-bottom:3px;">FAYELLA · v0.4</span>
+        </div>
+
+        <!-- global row -->
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 11px;background:linear-gradient(180deg,#191C21,#131519);border:1px solid #262A30;border-radius:10px;">
+          <dc-import name="Knob" label="IN" value="{{ B.in_gain }}" min="-12" max="12" def="0" display="{{ B.d.in_gain }}" accent="#8FD9E6" size="52" on-change="{{ B.set.in_gain }}" hint-size="52px,78px"></dc-import>
+          <dc-import name="Knob" label="OUT" value="{{ B.out_gain }}" min="-12" max="12" def="0" display="{{ B.d.out_gain }}" accent="#8FD9E6" size="52" on-change="{{ B.set.out_gain }}" hint-size="52px,78px"></dc-import>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:6px;padding:5px 6px;background:#0C0E11;border:1px solid #23272D;border-radius:7px;">
+              <button onClick="{{ B.prevPreset }}" style="width:18px;height:22px;border:none;background:#1B1E23;color:#8FD9E6;border-radius:4px;cursor:pointer;font-size:12px;">‹</button>
+              <div style="flex:1;text-align:center;font:600 11px/1 ui-sans-serif,system-ui;color:#EAF6F9;">{{ B.presetName }}</div>
+              <button onClick="{{ B.nextPreset }}" style="width:18px;height:22px;border:none;background:#1B1E23;color:#8FD9E6;border-radius:4px;cursor:pointer;font-size:12px;">›</button>
+            </div>
+            <button onClick="{{ B.toggleBypass }}" style="{{ B.bypassBtnStyle }}">{{ B.bypassLabel }}</button>
+          </div>
+        </div>
+
+        <!-- saturator -->
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 11px;background:linear-gradient(180deg,#1A1D22,#141619);border:1px solid #262A30;border-radius:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font:700 10px/1 ui-sans-serif,system-ui;letter-spacing:2px;color:#EAF0F4;">SATURATOR</span>
+            <span style="font:500 7px/1 monospace;letter-spacing:1px;color:#5A626B;">HARMONIC FRONT-END · 01</span>
+          </div>
+          <div style="display:flex;gap:9px;align-items:center;">
+            <div style="flex:1;"><dc-import name="Selector" label="VOICING" options="{{ voic }}" value="{{ B.sat_voicing }}" accent="#F2953A" on-change="{{ B.set.sat_voicing }}" hint-size="100%,44px"></dc-import></div>
+            <dc-import name="Knob" label="DRIVE" value="{{ B.sat_drive }}" min="0" max="24" def="6" display="{{ B.d.sat_drive }}" accent="#F2953A" size="50" on-change="{{ B.set.sat_drive }}" hint-size="54px,80px"></dc-import>
+            <dc-import name="Knob" label="BIAS" value="{{ B.sat_bias }}" min="0" max="100" def="20" display="{{ B.d.sat_bias }}" accent="#F2953A" size="50" on-change="{{ B.set.sat_bias }}" hint-size="54px,80px"></dc-import>
+            <dc-import name="Knob" label="MIX" value="{{ B.sat_mix }}" min="0" max="100" def="100" display="{{ B.d.sat_mix }}" accent="#8FD9E6" size="50" on-change="{{ B.set.sat_mix }}" hint-size="54px,80px"></dc-import>
+          </div>
+        </div>
+
+        <!-- clipper -->
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 11px;background:linear-gradient(180deg,#20201C,#161511);border:1px solid rgba(242,149,58,.4);border-radius:10px;box-shadow:0 0 18px -6px rgba(242,149,58,.3);">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font:700 10px/1 ui-sans-serif,system-ui;letter-spacing:2px;color:#F7D9B0;">CLIPPER <span style="font:700 7px/1 monospace;color:#0C0D0F;background:#F2953A;border-radius:3px;padding:2px 4px;letter-spacing:1px;margin-left:4px;">LIVE</span></span>
+            <span style="font:500 7px/1 monospace;letter-spacing:1px;color:#8a7355;">ANTI-ALIASED · ADAA · 02</span>
+          </div>
+          <div style="display:flex;gap:6px;justify-content:space-between;">
+            <dc-import name="Knob" label="DRIVE" value="{{ B.clip_drive }}" min="0" max="36" def="12" display="{{ B.d.clip_drive }}" accent="#FF7A1A" size="52" on-change="{{ B.set.clip_drive }}" hint-size="56px,82px"></dc-import>
+            <dc-import name="Knob" label="KNEE" value="{{ B.clip_knee }}" min="0" max="100" def="35" display="{{ B.d.clip_knee }}" accent="#F2953A" size="52" on-change="{{ B.set.clip_knee }}" hint-size="56px,82px"></dc-import>
+            <dc-import name="Knob" label="CEIL" value="{{ B.clip_ceiling }}" min="-18" max="0" def="-3" display="{{ B.d.clip_ceiling }}" accent="#8FD9E6" size="52" on-change="{{ B.set.clip_ceiling }}" hint-size="56px,82px"></dc-import>
+          </div>
+          <div style="display:flex;gap:7px;">
+            <dc-import name="Selector" label="OVERSAMPLE" options="{{ osOpts }}" value="{{ B.oversampling }}" accent="#8FD9E6" on-change="{{ B.set.oversampling }}" hint-size="62%,44px"></dc-import>
+            <dc-import name="Selector" label="ADAA" options="{{ adaaOpts }}" value="{{ B.adaa_order }}" accent="#8FD9E6" on-change="{{ B.set.adaa_order }}" hint-size="38%,44px"></dc-import>
+          </div>
+        </div>
+
+        <!-- limiter -->
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 11px;background:linear-gradient(180deg,#1A1D22,#141619);border:1px solid #262A30;border-radius:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font:700 10px/1 ui-sans-serif,system-ui;letter-spacing:2px;color:#EAF0F4;">LIMITER</span>
+            <span style="font:500 7px/1 monospace;letter-spacing:1px;color:#5A626B;">TRUE-PEAK BRICKWALL · 03</span>
+          </div>
+          <div style="display:flex;gap:6px;justify-content:space-between;">
+            <dc-import name="Knob" label="THRESH" value="{{ B.lim_threshold }}" min="-24" max="0" def="-6" display="{{ B.d.lim_threshold }}" accent="#8FD9E6" size="52" on-change="{{ B.set.lim_threshold }}" hint-size="56px,82px"></dc-import>
+            <dc-import name="Knob" label="CEILING" value="{{ B.lim_ceiling }}" min="-2" max="0" def="-1" display="{{ B.d.lim_ceiling }}" accent="#8FD9E6" size="52" on-change="{{ B.set.lim_ceiling }}" hint-size="56px,82px"></dc-import>
+            <dc-import name="Knob" label="RELEASE" value="{{ B.lim_release }}" min="1" max="500" def="60" display="{{ B.d.lim_release }}" accent="#8FD9E6" size="52" on-change="{{ B.set.lim_release }}" hint-size="56px,82px"></dc-import>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: detail display -->
+      <div style="flex:1;display:flex;flex-direction:column;gap:11px;min-width:0;">
+        <div onDoubleClick="{{ B.toggleDemo }}" title="Double-click to preview signal motion (mockup only — not a plugin control)" style="flex:1;position:relative;min-height:262px;background:#0A0C0F;border:1px solid #23272D;border-radius:9px;overflow:hidden;box-shadow:inset 0 0 50px rgba(0,0,0,.6);">
+          <canvas ref="{{ refs.B_scope }}" style="width:100%;height:100%;display:block;"></canvas>
+          <div style="position:absolute;top:8px;left:10px;font:600 8px/1 monospace;letter-spacing:2px;color:#5A626B;">OSCILLOSCOPE — DETAIL</div>
+          <div style="position:absolute;top:8px;right:10px;display:flex;align-items:center;gap:6px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#8FD9E6;box-shadow:0 0 6px #8FD9E6;animation:dfpulse 1.6s ease-in-out infinite;"></div>
+            <span style="font:600 8px/1 monospace;letter-spacing:2px;color:#8FD9E6;">SYNC ● LOCK</span>
+          </div>
+          <div style="position:absolute;bottom:8px;left:10px;display:flex;gap:12px;font:600 8px/1 monospace;letter-spacing:1px;">
+            <span style="color:#6b747d;"><span style="color:#9AD3DE;">━</span> IN</span>
+            <span style="color:#6b747d;"><span style="color:#F2953A;">━</span> OUT</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:9px;height:150px;">
+          <div style="flex:1;position:relative;background:#0A0C0F;border:1px solid #23272D;border-radius:9px;overflow:hidden;">
+            <canvas ref="{{ refs.B_transfer }}" style="width:100%;height:100%;display:block;"></canvas>
+            <div style="position:absolute;top:7px;left:9px;font:600 7px/1 monospace;letter-spacing:2px;color:#5A626B;">TRANSFER</div>
+          </div>
+          <div style="flex:1;position:relative;background:#0A0C0F;border:1px solid #23272D;border-radius:9px;overflow:hidden;">
+            <canvas ref="{{ refs.B_spectrum }}" style="width:100%;height:100%;display:block;"></canvas>
+            <div style="position:absolute;top:7px;left:9px;font:600 7px/1 monospace;letter-spacing:2px;color:#5A626B;">HARMONICS</div>
+          </div>
+        </div>
+
+        <!-- meter bridge -->
+        <div style="display:flex;align-items:center;gap:12px;padding:9px 12px;background:linear-gradient(180deg,#191C21,#131519);border:1px solid #262A30;border-radius:10px;">
+          <div style="display:flex;gap:10px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <div style="position:relative;width:12px;height:80px;background:#0A0C0F;border:1px solid #262A30;border-radius:3px;overflow:hidden;"><div ref="{{ refs.B_inFill }}" style="position:absolute;left:0;bottom:0;width:100%;height:20%;background:linear-gradient(0deg,#2FBF9E,#8FD9E6 72%,#EAF6F9);"></div><div ref="{{ refs.B_inTick }}" style="position:absolute;left:0;width:100%;height:2px;background:#EAF6F9;bottom:20%;"></div></div>
+              <div style="font:600 7px/1 monospace;letter-spacing:1px;color:#8A939C;">IN</div>
+              <div ref="{{ refs.B_inNum }}" style="font:600 8px/1 ui-monospace,monospace;color:#9AD3DE;">−∞</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <div style="position:relative;width:12px;height:80px;background:#0A0C0F;border:1px solid #262A30;border-radius:3px;overflow:hidden;"><div ref="{{ refs.B_outFill }}" style="position:absolute;left:0;bottom:0;width:100%;height:20%;background:linear-gradient(0deg,#2FBF9E,#8FD9E6 72%,#EAF6F9);"></div><div ref="{{ refs.B_outTick }}" style="position:absolute;left:0;width:100%;height:2px;background:#EAF6F9;bottom:20%;"></div></div>
+              <div style="font:600 7px/1 monospace;letter-spacing:1px;color:#8A939C;">OUT</div>
+              <div ref="{{ refs.B_outNum }}" style="font:600 8px/1 ui-monospace,monospace;color:#9AD3DE;">−∞</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <div style="position:relative;width:12px;height:80px;background:#0A0C0F;border:1px solid #262A30;border-radius:3px;overflow:hidden;"><div ref="{{ refs.B_grFill }}" style="position:absolute;left:0;top:0;width:100%;height:0%;background:linear-gradient(180deg,#FF7A1A,#F2953A);"></div></div>
+              <div style="font:600 7px/1 monospace;letter-spacing:1px;color:#8A939C;">GR</div>
+              <div ref="{{ refs.B_grNum }}" style="font:600 8px/1 ui-monospace,monospace;color:#F2953A;">0.0</div>
+            </div>
+          </div>
+          <div style="width:1px;height:80px;background:#262A30;"></div>
+          <div style="display:flex;flex-direction:column;gap:7px;flex:1;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <div ref="{{ refs.B_led }}" style="width:10px;height:10px;border-radius:50%;background:#35E0C0;box-shadow:0 0 8px #35E0C0;"></div>
+              <span ref="{{ refs.B_ledLabel }}" style="font:600 10px/1 ui-sans-serif,system-ui;color:#35E0C0;">CLEAN</span>
+              <span style="font:500 8px/1 monospace;letter-spacing:1px;color:#5A626B;margin-left:auto;">{{ B.chainTag }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;font:500 8px/1 monospace;letter-spacing:1px;color:#5A626B;">
+              <span>TRUE-PEAK LIMITER</span>
+              <span style="color:#4b525a;">SOURCE · LIVE INPUT</span>
+              <span style="margin-left:auto;color:#4b525a;">44.1 kHz</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  els = {};
+  _refs = {};
+  hold = {};
+  state = {
+    p1a: this.initParams(),
+    p1b: this.initParams(),
+    demo1a: false, demo1b: false,
+    pi1a: 0, pi1b: 0
+  };
+
+  initParams() {
+    return {
+      in_gain: 0, sat_voicing: 'Tube', sat_drive: 6, sat_bias: 20, sat_mix: 100,
+      clip_drive: 12, clip_knee: 35, clip_ceiling: -3, oversampling: '4×', adaa_order: '2nd',
+      lim_threshold: -6, lim_ceiling: -1, lim_release: 60, out_gain: 0, bypass: false
+    };
+  }
+
+  get PRESETS() {
+    return [
+      { name: 'Init', params: this.initParams() },
+      { name: 'Glue Master', params: { sat_voicing: 'Tube', sat_drive: 8, sat_bias: 30, sat_mix: 60, clip_drive: 10, clip_knee: 55, clip_ceiling: -2, lim_threshold: -8, lim_ceiling: -1, lim_release: 120 } },
+      { name: 'Loud & Clean', params: { sat_voicing: 'Tape', sat_drive: 4, sat_bias: 10, sat_mix: 40, clip_drive: 20, clip_knee: 25, clip_ceiling: -1, lim_threshold: -12, lim_ceiling: -1, lim_release: 40 } },
+      { name: 'Tape Warmth', params: { sat_voicing: 'Tape', sat_drive: 14, sat_bias: 45, sat_mix: 100, clip_drive: 6, clip_knee: 80, clip_ceiling: -4, lim_threshold: -5, lim_ceiling: -1.2, lim_release: 200 } },
+      { name: 'Transient Tamer', params: { sat_voicing: 'Xfmr', sat_drive: 10, sat_bias: 15, sat_mix: 70, clip_drive: 26, clip_knee: 10, clip_ceiling: -1, lim_threshold: -3, lim_ceiling: -1, lim_release: 15 } },
+      { name: 'Brickwall +6', params: { sat_voicing: 'Xfmr', sat_drive: 18, sat_bias: 60, sat_mix: 85, clip_drive: 30, clip_knee: 5, clip_ceiling: -0.5, lim_threshold: -14, lim_ceiling: -1, lim_release: 30 } }
+    ];
+  }
+
+  ref(k) {
+    if (!this._refs[k]) this._refs[k] = (el) => { this.els[k] = el; };
+    return this._refs[k];
+  }
+  setP(face, id, v) {
+    const key = 'p' + face;
+    this.setState(s => ({ [key]: { ...s[key], [id]: v } }));
+  }
+  applyPreset(face, idx) {
+    const pr = this.PRESETS[(idx + this.PRESETS.length) % this.PRESETS.length];
+    const i = (idx + this.PRESETS.length) % this.PRESETS.length;
+    this.setState(s => ({ ['p' + face]: { ...this.initParams(), ...pr.params }, ['pi' + face]: i }));
+  }
+
+  // ---- DSP ----
+  db2lin(d) { return Math.pow(10, d / 20); }
+  lin2db(x) { return 20 * Math.log10(Math.max(1e-6, Math.abs(x))); }
+  get src() {
+    if (this._src) return this._src;
+    const N = 1024, per = 3, s = new Float32Array(N); let mx = 0;
+    for (let i = 0; i < N; i++) {
+      const ph = per * 2 * Math.PI * i / N;
+      const v = 0.62 * Math.sin(ph) + 0.26 * Math.sin(2 * ph + 0.4) + 0.17 * Math.sin(3 * ph) + 0.09 * Math.sin(5 * ph) + 0.05 * Math.sin(7 * ph);
+      s[i] = v; if (Math.abs(v) > mx) mx = Math.abs(v);
+    }
+    for (let i = 0; i < N; i++) s[i] = s[i] / mx * 0.9;
+    this._src = s; this._per = per; return s;
+  }
+  shape(voi, u, bias) {
+    if (voi === 'Tape') return u / Math.sqrt(1 + u * u);
+    if (voi === 'Xfmr') { const c = Math.max(-1.5, Math.min(1.5, u)); return c - (c * c * c) / 6.75; }
+    return Math.tanh(u + bias) - Math.tanh(bias); // Tube
+  }
+  scalar(x, p) {
+    const sd = this.db2lin(p.sat_drive), bias = (p.sat_bias / 100) * 0.9, m = p.sat_mix / 100;
+    let w = this.shape(p.sat_voicing, x * sd, bias);
+    let sv = x * (1 - m) + w * m;
+    const cd = this.db2lin(p.clip_drive), ceil = this.db2lin(p.clip_ceiling), kn = p.clip_knee / 100;
+    const u = sv * cd;
+    const hard = Math.max(-ceil, Math.min(ceil, u));
+    const soft = ceil * Math.tanh(u / ceil);
+    return hard * (1 - kn) + soft * kn;
+  }
+  process(p, gm) {
+    const src = this.src, N = src.length;
+    const ig = this.db2lin(p.in_gain) * gm;
+    const inBuf = new Float32Array(N), outBuf = new Float32Array(N);
+    let inPk = 0;
+    for (let i = 0; i < N; i++) { inBuf[i] = src[i] * ig; if (Math.abs(inBuf[i]) > inPk) inPk = Math.abs(inBuf[i]); }
+    if (p.bypass) {
+      for (let i = 0; i < N; i++) outBuf[i] = inBuf[i];
+      return { inBuf, outBuf, inDb: this.lin2db(inPk), outDb: this.lin2db(inPk), grDb: 0, led: 'byp' };
+    }
+    const clip = new Float32Array(N); let pk = 0;
+    for (let i = 0; i < N; i++) { const c = this.scalar(inBuf[i], p); clip[i] = c; if (Math.abs(c) > pk) pk = Math.abs(c); }
+    const lceil = this.db2lin(p.lim_ceiling), pkDb = this.lin2db(pk);
+    const grDb = Math.max(0, pkDb - p.lim_threshold);
+    const above = pkDb > p.lim_threshold;
+    let g = (above && pk > 1e-6) ? Math.min(1, lceil / pk) : 1;
+    const og = this.db2lin(p.out_gain); let outPk = 0;
+    for (let i = 0; i < N; i++) { outBuf[i] = clip[i] * g * og; if (Math.abs(outBuf[i]) > outPk) outPk = Math.abs(outBuf[i]); }
+    const outDb = this.lin2db(outPk);
+    const led = outDb > -0.05 ? 'red' : (grDb > 0.3 ? 'amber' : 'green');
+    return { inBuf, outBuf, inDb: this.lin2db(inPk), outDb, grDb, led };
+  }
+  harmonics(buf, count) {
+    const N = buf.length, per = this._per || 3, out = []; let mx = 1e-9;
+    for (let h = 1; h <= count; h++) {
+      let re = 0, im = 0; const k = per * h;
+      for (let n = 0; n < N; n++) { const a = 2 * Math.PI * k * n / N; re += buf[n] * Math.cos(a); im -= buf[n] * Math.sin(a); }
+      const mag = Math.sqrt(re * re + im * im) / N * 2; out.push(mag); if (mag > mx) mx = mag;
+    }
+    return { mags: out, max: mx };
+  }
+
+  // ---- drawing ----
+  prep(el) {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const w = Math.max(2, Math.round(r.width)), h = Math.max(2, Math.round(r.height));
+    if (!w || !h) return null;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (el.width !== w * dpr || el.height !== h * dpr) { el.width = w * dpr; el.height = h * dpr; }
+    const ctx = el.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+  drawScope(key, res, p) {
+    const c = this.prep(this.els[key]); if (!c) return;
+    const { ctx, w, h } = c; ctx.clearRect(0, 0, w, h);
+    const cy = h / 2, amp = h / 2 / 1.35;
+    const Y = a => cy - a * amp;
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.045)'; ctx.lineWidth = 1;
+    for (let i = 1; i < 8; i++) { const x = w * i / 8; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (let j = 1; j < 4; j++) { const y = h * j / 4; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+    // ceilings
+    const lc = this.db2lin(p.lim_ceiling), cc = this.db2lin(p.clip_ceiling);
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(242,149,58,0.35)';
+    [lc, -lc].forEach(v => { ctx.beginPath(); ctx.moveTo(0, Y(v)); ctx.lineTo(w, Y(v)); ctx.stroke(); });
+    ctx.strokeStyle = 'rgba(143,217,230,0.18)';
+    [cc, -cc].forEach(v => { ctx.beginPath(); ctx.moveTo(0, Y(v)); ctx.lineTo(w, Y(v)); ctx.stroke(); });
+    ctx.setLineDash([]);
+    const N = res.inBuf.length;
+    // input ghost
+    ctx.strokeStyle = 'rgba(154,211,222,0.4)'; ctx.lineWidth = 1.4; ctx.beginPath();
+    for (let i = 0; i < N; i++) { const x = i / (N - 1) * w, y = Y(res.inBuf[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+    // output
+    ctx.shadowBlur = 7; ctx.shadowColor = 'rgba(255,138,42,0.7)';
+    ctx.strokeStyle = '#FF8A2A'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i < N; i++) { const x = i / (N - 1) * w, y = Y(res.outBuf[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  drawTransfer(key, p) {
+    const c = this.prep(this.els[key]); if (!c) return;
+    const { ctx, w, h } = c; ctx.clearRect(0, 0, w, h);
+    const pad = 8, cx = w / 2, cy = h / 2, sx = (w / 2 - pad) / 1.2, sy = (h / 2 - pad) / 1.2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, pad); ctx.lineTo(cx, h - pad); ctx.moveTo(pad, cy); ctx.lineTo(w - pad, cy); ctx.stroke();
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(143,217,230,0.3)';
+    ctx.beginPath(); ctx.moveTo(cx - sx, cy + sy); ctx.lineTo(cx + sx, cy - sy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.shadowBlur = 6; ctx.shadowColor = 'rgba(255,138,42,0.6)';
+    ctx.strokeStyle = '#FF8A2A'; ctx.lineWidth = 2; ctx.beginPath();
+    let first = true;
+    for (let i = 0; i <= 140; i++) {
+      const xt = -1.2 + 2.4 * i / 140;
+      let yt = this.scalar(xt, p); yt = Math.max(-1.2, Math.min(1.2, yt));
+      const px = cx + xt * sx, py = cy - yt * sy;
+      first ? (ctx.moveTo(px, py), first = false) : ctx.lineTo(px, py);
+    }
+    ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  drawSpectrum(key, res) {
+    const c = this.prep(this.els[key]); if (!c) return;
+    const { ctx, w, h } = c; ctx.clearRect(0, 0, w, h);
+    const count = 12, base = h - 12, top = 20, pad = 12;
+    const { mags, max } = this.harmonics(res.outBuf, count);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, base); ctx.lineTo(w - pad, base); ctx.stroke();
+    const bw = (w - pad * 2) / count;
+    for (let i = 0; i < count; i++) {
+      const mag = mags[i] / max;
+      const bh = Math.max(1, mag * (base - top));
+      const x = pad + i * bw + bw * 0.22, bwid = bw * 0.56;
+      if (i === 0) { ctx.fillStyle = '#8FD9E6'; ctx.shadowBlur = 6; ctx.shadowColor = 'rgba(143,217,230,0.6)'; }
+      else { ctx.fillStyle = 'rgba(242,149,58,' + (0.5 + 0.5 * mag) + ')'; ctx.shadowBlur = 4; ctx.shadowColor = 'rgba(242,149,58,0.5)'; }
+      ctx.fillRect(x, base - bh, bwid, bh);
+    }
+    ctx.shadowBlur = 0;
+  }
+  dbPct(db, lo, hi) { return Math.max(0, Math.min(1, (db - lo) / (hi - lo))); }
+  updateMeters(face, res) {
+    const P = this;
+    const set = (k, v) => { const el = P.els[k]; if (el) el.style.height = v; };
+    const txt = (k, v) => { const el = P.els[k]; if (el) el.textContent = v; };
+    const inP = this.dbPct(res.inDb, -42, 6), outP = this.dbPct(res.outDb, -42, 6);
+    set(face + '_inFill', (inP * 100).toFixed(1) + '%');
+    set(face + '_outFill', (outP * 100).toFixed(1) + '%');
+    // peak hold
+    const hk = face + 'inH', ok = face + 'outH';
+    this.hold[hk] = Math.max((this.hold[hk] || 0) - 0.012, inP); this.hold[hk] = Math.min(this.hold[hk], 1);
+    this.hold[ok] = Math.max((this.hold[ok] || 0) - 0.012, outP); this.hold[ok] = Math.min(this.hold[ok], 1);
+    const it = this.els[face + '_inTick']; if (it) it.style.bottom = (this.hold[hk] * 100).toFixed(1) + '%';
+    const ot = this.els[face + '_outTick']; if (ot) ot.style.bottom = (this.hold[ok] * 100).toFixed(1) + '%';
+    txt(face + '_inNum', res.inDb <= -42 ? '−∞' : res.inDb.toFixed(1));
+    txt(face + '_outNum', res.outDb <= -42 ? '−∞' : res.outDb.toFixed(1));
+    set(face + '_grFill', this.dbPct(res.grDb, 0, 18) * 100 + '%');
+    txt(face + '_grNum', res.grDb.toFixed(1));
+    const led = this.els[face + '_led'], lab = this.els[face + '_ledLabel'];
+    const map = { green: ['#35E0C0', 'CLEAN'], amber: ['#F2953A', 'LIMITING'], red: ['#FF453A', 'OVER'], byp: ['#5A626B', 'BYPASS'] };
+    const m = map[res.led] || map.green;
+    if (led) { led.style.background = m[0]; led.style.boxShadow = '0 0 8px ' + m[0]; }
+    if (lab) { lab.style.color = m[0]; lab.textContent = m[1]; }
+  }
+
+  renderFrame() {
+    const now = performance.now();
+    for (const face of ['1b']) {
+      const p = this.state['p' + face]; if (!p) continue;
+      const gm = this.state['demo' + face] ? (1 + 0.5 * Math.sin(now / 620)) * (0.92 + 0.08 * Math.sin(now / 210)) : 1;
+      const res = this.process(p, gm);
+      const F = face === '1a' ? 'A' : 'B';
+      this.drawScope(F + '_scope', res, p);
+      this.drawTransfer(F + '_transfer', p);
+      this.drawSpectrum(F + '_spectrum', res);
+      this.updateMeters(F, res);
+    }
+  }
+  componentDidMount() {
+    const tick = () => { this.renderFrame(); this._raf = requestAnimationFrame(tick); };
+    this.renderFrame();
+    this._raf = requestAnimationFrame(tick);
+    this._iv = setInterval(() => this.renderFrame(), 33);
+  }
+  componentWillUnmount() { if (this._raf) cancelAnimationFrame(this._raf); if (this._iv) clearInterval(this._iv); }
+
+  // ---- view model ----
+  fmtDb(v) { return (v >= 0 ? '+' : '') + Number(v).toFixed(1) + ' dB'; }
+  fmtPct(v) { return Math.round(v) + ' %'; }
+  fmtMs(v) { return (v < 10 ? v.toFixed(1) : Math.round(v)) + ' ms'; }
+  fmtKnee(v) { return Math.round(v) + '%'; }
+  vm(face) {
+    const p = this.state['p' + face];
+    const set = {};
+    ['in_gain', 'sat_voicing', 'sat_drive', 'sat_bias', 'sat_mix', 'clip_drive', 'clip_knee', 'clip_ceiling', 'oversampling', 'adaa_order', 'lim_threshold', 'lim_ceiling', 'lim_release', 'out_gain']
+      .forEach(id => { set[id] = (v) => this.setP(face, id, v); });
+    const d = {
+      in_gain: this.fmtDb(p.in_gain), out_gain: this.fmtDb(p.out_gain),
+      sat_drive: this.fmtDb(p.sat_drive), sat_bias: this.fmtPct(p.sat_bias), sat_mix: this.fmtPct(p.sat_mix),
+      clip_drive: this.fmtDb(p.clip_drive), clip_knee: this.fmtKnee(p.clip_knee), clip_ceiling: this.fmtDb(p.clip_ceiling),
+      lim_threshold: this.fmtDb(p.lim_threshold), lim_ceiling: this.fmtDb(p.lim_ceiling), lim_release: this.fmtMs(p.lim_release)
+    };
+    const byBtn = 'border:none;cursor:pointer;border-radius:8px;padding:9px 16px;font:700 11px/1 ui-sans-serif,system-ui;letter-spacing:2px;transition:all .15s;';
+    const bypassBtnStyle = p.bypass
+      ? byBtn + 'background:#FF453A;color:#0C0D0F;box-shadow:0 0 16px rgba(255,69,58,.6);'
+      : byBtn + 'background:linear-gradient(180deg,#24282E,#171A1E);color:#8A939C;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 2px 6px rgba(0,0,0,.4);';
+    const demo = this.state['demo' + face];
+    const dmBtn = 'border:1px solid;cursor:pointer;border-radius:7px;padding:7px 12px;font:600 9px/1 monospace;letter-spacing:1.5px;transition:all .15s;';
+    const demoBtnStyle = demo
+      ? dmBtn + 'background:rgba(143,217,230,.12);border-color:rgba(143,217,230,.5);color:#8FD9E6;box-shadow:0 0 12px rgba(143,217,230,.25);'
+      : dmBtn + 'background:transparent;border-color:#2A2E34;color:#6B747D;';
+    return {
+      ...p, d, set,
+      presetName: this.PRESETS[this.state['pi' + face]].name,
+      prevPreset: () => this.applyPreset(face, this.state['pi' + face] - 1),
+      nextPreset: () => this.applyPreset(face, this.state['pi' + face] + 1),
+      toggleBypass: () => this.setP(face, 'bypass', !p.bypass),
+      bypassBtnStyle, bypassLabel: p.bypass ? 'BYPASSED' : 'BYPASS',
+      toggleDemo: () => this.setState(s => ({ ['demo' + face]: !s['demo' + face] })),
+      demoBtnStyle, demoLabel: (demo ? '◉ DEMO SIGNAL' : '◯ DEMO SIGNAL'),
+      chainTag: p.oversampling + ' OVERSAMPLE · ADAA ' + p.adaa_order
+    };
+  }
+  renderVals() {
+    const refKeys = ['A_scope', 'A_transfer', 'A_spectrum', 'A_led', 'A_ledLabel', 'A_inFill', 'A_inTick', 'A_inNum', 'A_outFill', 'A_outTick', 'A_outNum', 'A_grFill', 'A_grNum',
+      'B_scope', 'B_transfer', 'B_spectrum', 'B_led', 'B_ledLabel', 'B_inFill', 'B_inTick', 'B_inNum', 'B_outFill', 'B_outTick', 'B_outNum', 'B_grFill', 'B_grNum'];
+    const refs = {}; refKeys.forEach(k => { refs[k] = this.ref(k); });
+    return {
+      A: this.vm('1a'), B: this.vm('1b'), refs,
+      voic: ['Tube', 'Tape', 'Xfmr'],
+      osOpts: ['1×', '2×', '4×', '8×', '16×'],
+      adaaOpts: ['Off', '1st', '2nd']
+    };
+  }
+}
+</script>
+</body>
+</html>

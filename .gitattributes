@@ -1,0 +1,18 @@
+# Normalize line endings. Default text files to LF so Unix tooling (the macOS CI bash steps,
+# shell in .github workflows) never sees CR characters. Windows-only scripts keep CRLF.
+* text=auto eol=lf
+
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary assets (never touch line endings)
+*.zip   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.p12   binary
+*.vst3  binary

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex;flex-direction:column;align-items:center;gap:5px;width:{{ size }}px;user-select:none;-webkit-user-select:none;">
+  <div style="font:600 9px/1 ui-sans-serif,system-ui,'SF Pro Display','Segoe UI',sans-serif;letter-spacing:1.4px;color:#8A939C;text-transform:uppercase;">{{ label }}</div>
+  <div onPointerDown="{{ onDown }}" onDoubleClick="{{ onReset }}" style="position:relative;width:{{ size }}px;height:{{ size }}px;cursor:ns-resize;touch-action:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.55));">
+    <svg viewBox="0 0 100 100" width="{{ size }}" height="{{ size }}" style="display:block;overflow:visible;">
+      <path d="{{ trackPath }}" fill="none" stroke="#262A30" stroke-width="6" stroke-linecap="round"></path>
+      <path d="{{ valuePath }}" fill="none" stroke="{{ accent }}" stroke-width="6" stroke-linecap="round" style="filter:drop-shadow(0 0 3px {{ glow }});"></path>
+      <circle cx="50" cy="50" r="33" fill="#212429"></circle>
+      <circle cx="50" cy="50" r="33" fill="none" stroke="#33383F" stroke-width="1.4"></circle>
+      <circle cx="50" cy="50" r="29" fill="#14161A"></circle>
+      <circle cx="43" cy="42" r="24" fill="#2A2E34" opacity="0.35"></circle>
+      <line x1="{{ ind.x1 }}" y1="{{ ind.y1 }}" x2="{{ ind.x2 }}" y2="{{ ind.y2 }}" stroke="{{ accent }}" stroke-width="3.2" stroke-linecap="round" style="filter:drop-shadow(0 0 3px {{ glow }});"></line>
+      <circle cx="50" cy="50" r="3" fill="#4A515A"></circle>
+    </svg>
+  </div>
+  <div style="font:600 11px/1 ui-monospace,'SF Mono','Roboto Mono',monospace;color:#EAF6F9;font-variant-numeric:tabular-nums;letter-spacing:0.3px;">{{ display }}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:110,&quot;height&quot;:150},&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;DRIVE&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;value&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:50,&quot;tsType&quot;:&quot;number&quot;},&quot;min&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;max&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:100,&quot;tsType&quot;:&quot;number&quot;},&quot;def&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:50,&quot;tsType&quot;:&quot;number&quot;},&quot;display&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;+6.0 dB&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#F2953A&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:64,&quot;tsType&quot;:&quot;number&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v:number)=&gt;void&quot;}}">
+class Component extends DCLogic {
+  polar(r, ang) {
+    const rad = ang * Math.PI / 180;
+    return { x: 50 + r * Math.sin(rad), y: 50 - r * Math.cos(rad) };
+  }
+  arc(r, a0, a1) {
+    const p0 = this.polar(r, a0), p1 = this.polar(r, a1);
+    const laf = (a1 - a0) > 180 ? 1 : 0;
+    return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${r} ${r} 0 ${laf} 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+  }
+  renderVals() {
+    const min = Number(this.props.min ?? 0);
+    const max = Number(this.props.max ?? 100);
+    const v = Number(this.props.value ?? min);
+    const norm = Math.max(0, Math.min(1, (v - min) / (max - min || 1)));
+    const a0 = -135, a1 = -135 + norm * 270;
+    const accent = this.props.accent ?? '#F2953A';
+    const p1 = this.polar(15, a1), p2 = this.polar(29, a1);
+    return {
+      size: Number(this.props.size ?? 64),
+      label: this.props.label ?? '',
+      display: this.props.display ?? String(v),
+      accent,
+      glow: this.hexA(accent, 0.55),
+      trackPath: this.arc(44, -135, 135),
+      valuePath: norm <= 0.001 ? '' : this.arc(44, a0, a1),
+      ind: { x1: p1.x.toFixed(2), y1: p1.y.toFixed(2), x2: p2.x.toFixed(2), y2: p2.y.toFixed(2) },
+      onDown: (e) => {
+        e.preventDefault();
+        const startY = e.clientY;
+        const startV = Number(this.props.value ?? min);
+        const range = max - min;
+        const fine = e.shiftKey ? 0.25 : 1;
+        const move = (ev) => {
+          const dy = startY - ev.clientY;
+          let nv = startV + (dy / 170) * range * fine;
+          nv = Math.max(min, Math.min(max, nv));
+          this.props.onChange && this.props.onChange(nv);
+        };
+        const up = () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      },
+      onReset: () => {
+        if (this.props.onChange && this.props.def !== undefined) this.props.onChange(Number(this.props.def));
+      }
+    };
+  }
+  hexA(hex, a) {
+    const h = (hex || '#F2953A').replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+name: macOS build
+
+# Runs ONLY on version tags, published releases, or manual dispatch — never on every commit.
+# (GitHub bills macOS runner minutes at 10x on private repos.)
+on:
+  push:
+    tags: ['v*']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    runs-on: macos-14          # Apple silicon; the universal build cross-compiles the x86_64 slice
+    steps:
+      - uses: actions/checkout@v4
+
+      # Faust is NOT needed: Source/generated/ClipEngine.h is committed and the Faust architecture
+      # headers are vendored under ThirdParty/faust. Node is NOT needed: the UI is committed HTML +
+      # the JUCE JS bundle. So this job has no toolchain install step beyond what the runner ships.
+
+      - name: Version string
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then V="${GITHUB_REF_NAME#v}"; else V="0.0.1-dev.${GITHUB_RUN_NUMBER}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Do we have signing secrets?
+        id: sign
+        run: |
+          if [ -n "${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 }}" ] && [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
+            echo "have=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Apple signing secrets set — producing UNSIGNED artifacts for testing."
+          fi
+
+      - name: Configure
+        run: cmake -B build -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+
+      - name: Build (AU + VST3 + Standalone, Release, universal)
+        run: cmake --build build --config Release --target DetailForge_All -j3
+
+      - name: Locate artefacts
+        id: art
+        run: |
+          VST3="$(find build -type d -name 'Detail Forge.vst3' | head -1)"
+          AU="$(find build -type d -name 'Detail Forge.component' | head -1)"
+          echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
+          echo "au=$AU"     >> "$GITHUB_OUTPUT"
+          test -n "$VST3" && test -n "$AU"
+
+      - name: Validate with pluginval
+        run: |
+          curl -sL https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip -o pluginval.zip
+          unzip -q pluginval.zip
+          ./pluginval.app/Contents/MacOS/pluginval --strictness-level 8 --validate "${{ steps.art.outputs.vst3 }}"
+
+      - name: Validate the AU with auval
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R "${{ steps.art.outputs.au }}" ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          sleep 2
+          auval -v aufx Dtfg Fyla     # type=effect, subtype=PLUGIN_CODE, manufacturer=PLUGIN_MANUFACTURER_CODE
+
+      # ---------- optional: sign + notarize (only if Apple secrets are configured) ----------
+      - name: Import signing certificates
+        if: steps.sign.outputs.have == 'true'
+        env:
+          APP_CERT:       ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 }}
+          INSTALLER_CERT: ${{ secrets.DEVELOPER_ID_INSTALLER_CERT_P12_BASE64 }}
+          CERT_PASSWORD:  ${{ secrets.CERT_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/app.keychain-db"; KPW="ci-temp-$RANDOM"
+          security create-keychain -p "$KPW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KPW" "$KEYCHAIN"
+          echo "$APP_CERT" | base64 --decode > app.p12
+          security import app.p12 -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          if [ -n "$INSTALLER_CERT" ]; then
+            echo "$INSTALLER_CERT" | base64 --decode > installer.p12
+            security import installer.p12 -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/productbuild -T /usr/bin/productsign
+          fi
+          security set-key-partition-list -S apple-tool:,apple: -k "$KPW" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f app.p12 installer.p12
+
+      - name: Sign, package (.pkg), notarize, staple
+        if: steps.sign.outputs.have == 'true'
+        env:
+          TEAM_ID:            ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID:           ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          VERSION:            ${{ steps.ver.outputs.version }}
+        run: |
+          APP_ID="$(security find-identity -v -p codesigning | grep 'Developer ID Application' | head -1 | awk '{print $2}')"
+          INST_ID="$(security find-identity -v | grep 'Developer ID Installer' | head -1 | awk '{print $2}')"
+          for b in "${{ steps.art.outputs.vst3 }}" "${{ steps.art.outputs.au }}"; do
+            codesign --force --deep --options runtime --timestamp \
+                     --entitlements packaging/entitlements.mac.plist -s "$APP_ID" "$b"
+            codesign --verify --strict --verbose=2 "$b"
+          done
+          mkdir -p dist pkgroot/Library/Audio/Plug-Ins/VST3 pkgroot/Library/Audio/Plug-Ins/Components
+          cp -R "${{ steps.art.outputs.vst3 }}" pkgroot/Library/Audio/Plug-Ins/VST3/
+          cp -R "${{ steps.art.outputs.au }}"   pkgroot/Library/Audio/Plug-Ins/Components/
+          pkgbuild --root pkgroot --identifier com.fayella.detailforge --version "$VERSION" \
+                   --install-location / "dist/DetailForge-unsigned.pkg"
+          productsign --sign "$INST_ID" "dist/DetailForge-unsigned.pkg" "dist/DetailForge-$VERSION.pkg"
+          rm -f "dist/DetailForge-unsigned.pkg"
+          xcrun notarytool submit "dist/DetailForge-$VERSION.pkg" \
+                --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+          xcrun stapler staple "dist/DetailForge-$VERSION.pkg"
+
+      # ---------- fallback: unsigned zips so the build is still usable for testing ----------
+      - name: Package unsigned artifacts
+        if: steps.sign.outputs.have != 'true'
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p dist
+          ditto -c -k --keepParent "${{ steps.art.outputs.vst3 }}" "dist/DetailForge-$VERSION-macOS-VST3-unsigned.zip"
+          ditto -c -k --keepParent "${{ steps.art.outputs.au }}"   "dist/DetailForge-$VERSION-macOS-AU-unsigned.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DetailForge-macOS-${{ steps.ver.outputs.version }}
+          path: dist/
+          if-no-files-found: error

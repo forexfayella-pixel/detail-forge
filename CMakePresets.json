@@ -1,0 +1,25 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "VS 2026 x64",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build"
+    },
+    {
+      "name": "vs2022",
+      "displayName": "VS 2022 x64 (fallback)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build"
+    }
+  ],
+  "buildPresets": [
+    { "name": "default", "configurePreset": "default", "configuration": "Release" },
+    { "name": "debug", "configurePreset": "default", "configuration": "Debug" },
+    { "name": "vs2022", "configurePreset": "vs2022", "configuration": "Release" }
+  ]
+}

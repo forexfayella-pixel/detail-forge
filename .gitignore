@@ -1,0 +1,28 @@
+# Build tree
+build/
+build-*/
+cmake-build-*/
+out/
+CMakeUserPresets.json
+
+# The Faust-generated engine (Source/generated/ClipEngine.h) and the vendored Faust
+# architecture headers (ThirdParty/faust/) ARE committed on purpose, so the build and CI
+# never depend on a Faust install. Regenerate the engine with the `regen_faust` target.
+
+# Downloaded tools (pluginval, etc.)
+tools/
+
+# Packaging output
+packaging/output/
+dist/
+*.exe.zip
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE / OS cruft
+.vs/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Detail Forge</title>
+<style>
+  :root{color-scheme:dark;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:#17181b;color:#EAF0F4;font-family:ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif;
+       -webkit-user-select:none;user-select:none;overflow:hidden;}
+  .wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#17181b;}
+  .rack{width:964px;flex:none;transform-origin:center center;padding:22px;border-radius:16px;border:1px solid #2A2E34;
+        background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0) 10%),
+                   repeating-linear-gradient(90deg,rgba(255,255,255,0.014) 0 2px,rgba(0,0,0,0) 2px 4px),
+                   radial-gradient(130% 90% at 50% -10%,#212429,#0D0E11 72%);
+        box-shadow:0 34px 70px -22px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.05);
+        display:flex;gap:14px;}
+  .strip{width:404px;flex-shrink:0;display:flex;flex-direction:column;gap:11px;}
+  .display{flex:1;display:flex;flex-direction:column;gap:11px;min-width:0;}
+  .brand{display:flex;align-items:center;gap:9px;}
+  .brand .name{font:700 15px/1 ui-sans-serif,system-ui;letter-spacing:2.5px;color:#EAF0F4;}
+  .brand .name b{color:#F2953A;font-weight:700;}
+  .brand .ver{font:600 10px/1 ui-monospace,monospace;letter-spacing:1.5px;color:#8A939C;align-self:flex-end;margin-bottom:3px;}
+  .brand .ver b{color:#F2953A;font-weight:700;}
+  .panel{display:flex;flex-direction:column;gap:8px;padding:10px 11px;border:1px solid #262A30;border-radius:10px;
+         background:linear-gradient(180deg,#1A1D22,#141619);}
+  .panel.global{flex-direction:row;align-items:center;gap:8px;padding:9px 11px;background:linear-gradient(180deg,#191C21,#131519);}
+  .panel.clip{background:linear-gradient(180deg,#20201C,#161511);border:1px solid rgba(242,149,58,.4);box-shadow:0 0 18px -6px rgba(242,149,58,.3);}
+  .phead{display:flex;align-items:center;justify-content:space-between;}
+  .ptitle{font:700 10px/1 ui-sans-serif,system-ui;letter-spacing:2px;color:#EAF0F4;}
+  .ptitle.warm{color:#F7D9B0;}
+  .ptag{font:500 7px/1 ui-monospace,monospace;letter-spacing:1px;color:#5A626B;}
+  .badge{font:700 7px/1 ui-monospace,monospace;color:#0C0D0F;background:#F2953A;border-radius:3px;padding:2px 4px;letter-spacing:1px;margin-left:4px;}
+  .row{display:flex;gap:9px;align-items:flex-end;}
+  .row.between{justify-content:space-between;}
+  /* knob */
+  .knob{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .knob .klabel{font:600 9px/1 ui-sans-serif,system-ui;letter-spacing:1.4px;color:#8A939C;text-transform:uppercase;}
+  .knob .kdial{position:relative;cursor:ns-resize;touch-action:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.55));}
+  .knob .kval{font:600 11px/1 ui-monospace,'SF Mono',monospace;color:#EAF6F9;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+  /* selector */
+  .sel{display:flex;flex-direction:column;gap:5px;width:100%;}
+  .sel .slabel{font:600 9px/1 ui-sans-serif,system-ui;letter-spacing:1.4px;color:#8A939C;text-transform:uppercase;}
+  .sel .segs{display:flex;gap:3px;padding:3px;background:#0E1013;border:1px solid #262A30;border-radius:7px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.6);}
+  .sel button{flex:1;min-width:0;border:none;cursor:pointer;padding:6px 2px;border-radius:5px;
+              font:600 10px/1 ui-sans-serif,system-ui;letter-spacing:.4px;text-transform:uppercase;
+              transition:all .12s ease;font-variant-numeric:tabular-nums;background:transparent;color:#6B747D;}
+  /* preset + bypass */
+  .presetcol{flex:1;display:flex;flex-direction:column;gap:6px;}
+  .presetbar{display:flex;align-items:center;gap:6px;padding:5px 6px;background:#0C0E11;border:1px solid #23272D;border-radius:7px;}
+  .presetbar button{width:18px;height:22px;border:none;background:#1B1E23;color:#8FD9E6;border-radius:4px;cursor:pointer;font-size:12px;}
+  .presetname{flex:1;text-align:center;font:600 11px/1 ui-sans-serif,system-ui;color:#EAF6F9;}
+  #bypass{border:none;cursor:pointer;border-radius:8px;padding:9px 16px;font:700 11px/1 ui-sans-serif,system-ui;letter-spacing:2px;transition:all .15s;
+          background:linear-gradient(180deg,#24282E,#171A1E);color:#8A939C;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 2px 6px rgba(0,0,0,.4);}
+  #bypass.on{background:#FF453A;color:#0C0D0F;box-shadow:0 0 16px rgba(255,69,58,.6);}
+  /* display side */
+  .viz{position:relative;background:#0A0C0F;border:1px solid #23272D;border-radius:9px;overflow:hidden;}
+  .viz canvas{width:100%;height:100%;display:block;}
+  .viz .tag{position:absolute;font:600 8px/1 ui-monospace,monospace;letter-spacing:2px;color:#5A626B;}
+  .scopewrap{flex:1;min-height:236px;box-shadow:inset 0 0 50px rgba(0,0,0,.6);}
+  .lowrow{display:flex;gap:9px;height:132px;}
+  .meterbridge{display:flex;align-items:center;gap:12px;padding:9px 12px;background:linear-gradient(180deg,#191C21,#131519);border:1px solid #262A30;border-radius:10px;overflow:hidden;}
+  .metergroup{display:flex;gap:10px;flex:none;}
+  .meter{display:flex;flex-direction:column;align-items:center;gap:4px;width:30px;flex:none;}
+  .meterbar{position:relative;width:12px;height:80px;background:#0A0C0F;border:1px solid #262A30;border-radius:3px;overflow:hidden;}
+  .fill{position:absolute;left:0;bottom:0;width:100%;background:linear-gradient(0deg,#2FBF9E,#8FD9E6 72%,#EAF6F9);height:0;}
+  .fill.gr{top:0;bottom:auto;background:linear-gradient(180deg,#FF7A1A,#F2953A);}
+  .tick{position:absolute;left:0;width:100%;height:2px;background:#EAF6F9;bottom:0;}
+  .mlabel{font:600 7px/1 ui-monospace,monospace;letter-spacing:1px;color:#8A939C;}
+  .mnum{font:600 8px/1 ui-monospace,monospace;color:#9AD3DE;width:34px;text-align:center;font-variant-numeric:tabular-nums;}
+  .mnum.gr{color:#F2953A;}
+  .statuscol{display:flex;flex-direction:column;gap:7px;flex:1;}
+  .statusrow{display:flex;align-items:center;gap:7px;}
+  #led{width:10px;height:10px;border-radius:50%;background:#35E0C0;box-shadow:0 0 8px #35E0C0;}
+  #ledlabel{font:600 10px/1 ui-sans-serif,system-ui;color:#35E0C0;}
+  .chaintag{font:500 8px/1 ui-monospace,monospace;letter-spacing:1px;color:#5A626B;margin-left:auto;}
+  .subrow{display:flex;align-items:center;gap:14px;font:500 8px/1 ui-monospace,monospace;letter-spacing:1px;color:#5A626B;}
+  .sep{width:1px;height:80px;background:#262A30;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="rack">
+    <!-- LEFT: channel strip -->
+    <div class="strip">
+      <div class="brand">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L20 12 L12 22 L4 12 Z" fill="none" stroke="#F2953A" stroke-width="1.6"></path><path d="M12 7 L16.5 12 L12 17 L7.5 12 Z" fill="#F2953A"></path></svg>
+        <div class="name">DETAIL <b>FORGE</b></div>
+        <span class="ver"><b>FAYELLA</b> · v0.5</span>
+      </div>
+
+      <!-- global -->
+      <div class="panel global">
+        <div class="knob" data-knob="in_gain" data-label="IN" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="0"></div>
+        <div class="knob" data-knob="out_gain" data-label="OUT" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="0"></div>
+        <div class="presetcol">
+          <div class="presetbar">
+            <button id="prevPreset">‹</button>
+            <div class="presetname" id="presetName">Init</div>
+            <button id="nextPreset">›</button>
+          </div>
+          <button id="bypass">BYPASS</button>
+        </div>
+      </div>
+
+      <!-- saturator -->
+      <div class="panel">
+        <div class="phead"><span class="ptitle">SATURATOR <span class="badge">LIVE</span></span><span class="ptag">HARMONIC FRONT-END · 01</span></div>
+        <div class="row">
+          <div style="flex:1;"><div class="sel" data-selector="sat_voicing" data-label="VOICING" data-accent="#F2953A"></div></div>
+          <div class="knob" data-knob="sat_drive" data-label="DRIVE" data-accent="#F2953A" data-size="50" data-fmt="db" data-def="6"></div>
+          <div class="knob" data-knob="sat_bias" data-label="BIAS" data-accent="#F2953A" data-size="50" data-fmt="pct" data-def="20"></div>
+          <div class="knob" data-knob="sat_mix" data-label="MIX" data-accent="#8FD9E6" data-size="50" data-fmt="pct" data-def="100"></div>
+        </div>
+      </div>
+
+      <!-- clipper -->
+      <div class="panel clip">
+        <div class="phead"><span class="ptitle warm">CLIPPER <span class="badge">LIVE</span></span><span class="ptag" style="color:#8a7355;">ANTI-ALIASED · ADAA · 02</span></div>
+        <div class="row between">
+          <div class="knob" data-knob="clip_drive" data-label="DRIVE" data-accent="#FF7A1A" data-size="52" data-fmt="db" data-def="12"></div>
+          <div class="knob" data-knob="clip_knee" data-label="KNEE" data-accent="#F2953A" data-size="52" data-fmt="knee" data-def="35"></div>
+          <div class="knob" data-knob="clip_ceiling" data-label="CEIL" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-3"></div>
+        </div>
+        <div class="row" style="align-items:stretch;">
+          <div style="flex:1.6;"><div class="sel" data-selector="oversampling" data-label="OVERSAMPLE" data-accent="#8FD9E6"></div></div>
+          <div style="flex:1;"><div class="sel" data-selector="adaa_order" data-label="ADAA" data-accent="#8FD9E6"></div></div>
+        </div>
+      </div>
+
+      <!-- limiter -->
+      <div class="panel">
+        <div class="phead"><span class="ptitle">LIMITER</span><span class="ptag">TRUE-PEAK BRICKWALL · 03</span></div>
+        <div class="row between">
+          <div class="knob" data-knob="lim_threshold" data-label="THRESH" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-6"></div>
+          <div class="knob" data-knob="lim_ceiling" data-label="CEILING" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-1"></div>
+          <div class="knob" data-knob="lim_release" data-label="RELEASE" data-accent="#8FD9E6" data-size="52" data-fmt="ms" data-def="60"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: detail display -->
+    <div class="display">
+      <div class="viz scopewrap">
+        <canvas id="scope"></canvas>
+        <div class="tag" style="top:8px;left:10px;">OSCILLOSCOPE — LIVE · SYNCED</div>
+        <div class="tag" style="top:8px;right:10px;left:auto;color:#8FD9E6;">IN vs OUT ● ▲TRIG</div>
+        <div class="tag" style="bottom:8px;left:10px;"><span style="color:#9AD3DE;">━</span> IN&nbsp;&nbsp;<span style="color:#F2953A;">━</span> OUT</div>
+        <div class="tag" id="ampToggle" style="bottom:8px;right:10px;left:auto;cursor:pointer;color:#8FD9E6;" title="Toggle linear / dB amplitude axis">LIN</div>
+      </div>
+      <div class="lowrow">
+        <div class="viz" style="flex:1;"><canvas id="transfer"></canvas><div class="tag" style="top:7px;left:9px;">TRANSFER</div></div>
+        <div class="viz" style="flex:1;"><canvas id="spectrum"></canvas><div class="tag" style="top:7px;left:9px;">HARMONICS</div></div>
+      </div>
+      <!-- meter bridge (REAL levels) -->
+      <div class="meterbridge">
+        <div class="metergroup">
+          <div class="meter"><div class="meterbar"><div class="fill" id="inFill"></div><div class="tick" id="inTick"></div></div><div class="mlabel">IN</div><div class="mnum" id="inNum">−∞</div></div>
+          <div class="meter"><div class="meterbar"><div class="fill" id="outFill"></div><div class="tick" id="outTick"></div></div><div class="mlabel">OUT</div><div class="mnum" id="outNum">−∞</div></div>
+          <div class="meter"><div class="meterbar"><div class="fill gr" id="grFill"></div></div><div class="mlabel">GR</div><div class="mnum gr" id="grNum">0.0</div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="statuscol">
+          <div class="statusrow"><div id="led"></div><span id="ledlabel">CLEAN</span><span class="chaintag" id="chainTag">4x OVERSAMPLE · ADAA 2nd</span></div>
+          <div class="subrow"><span>TRUE-PEAK LIMITER</span><span style="color:#4b525a;">SOURCE · LIVE</span><span style="margin-left:auto;color:#4b525a;">GR pending M2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as Juce from "./juce/index.js";
+
+// ---------- formatters ----------
+const fmt = {
+  db:  v => (v >= 0 ? "+" : "") + v.toFixed(1) + " dB",
+  pct: v => Math.round(v) + " %",
+  knee:v => Math.round(v) + "%",
+  ms:  v => (v < 10 ? v.toFixed(1) : Math.round(v)) + " ms",
+};
+
+// ---------- knob (SVG arc, vertical drag) ----------
+function polar(r, ang){ const a = ang*Math.PI/180; return { x:50 + r*Math.sin(a), y:50 - r*Math.cos(a) }; }
+function arcPath(r, a0, a1){ const p0=polar(r,a0), p1=polar(r,a1), laf=(a1-a0)>180?1:0;
+  return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${r} ${r} 0 ${laf} 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`; }
+
+function makeKnob(el){
+  const id=el.dataset.knob, label=el.dataset.label, accent=el.dataset.accent||"#F2953A";
+  const size=+(el.dataset.size||52), formatter=fmt[el.dataset.fmt||"db"], def=el.dataset.def;
+  const state=Juce.getSliderState(id);
+  el.innerHTML =
+    `<div class="klabel">${label}</div>
+     <div class="kdial" style="width:${size}px;height:${size}px;">
+       <svg viewBox="0 0 100 100" width="${size}" height="${size}" style="display:block;overflow:visible;">
+         <path d="${arcPath(44,-135,135)}" fill="none" stroke="#262A30" stroke-width="6" stroke-linecap="round"></path>
+         <path class="varc" fill="none" stroke="${accent}" stroke-width="6" stroke-linecap="round" style="filter:drop-shadow(0 0 3px ${accent}88);"></path>
+         <circle cx="50" cy="50" r="33" fill="#212429"></circle>
+         <circle cx="50" cy="50" r="33" fill="none" stroke="#33383F" stroke-width="1.4"></circle>
+         <circle cx="50" cy="50" r="29" fill="#14161A"></circle>
+         <circle cx="43" cy="42" r="24" fill="#2A2E34" opacity="0.35"></circle>
+         <line class="vind" stroke="${accent}" stroke-width="3.2" stroke-linecap="round" style="filter:drop-shadow(0 0 3px ${accent}88);"></line>
+         <circle cx="50" cy="50" r="3" fill="#4A515A"></circle>
+       </svg>
+     </div>
+     <div class="kval">–</div>`;
+  const varc=el.querySelector(".varc"), vind=el.querySelector(".vind"), kval=el.querySelector(".kval");
+  const dial=el.querySelector(".kdial");
+
+  function render(){
+    const norm=Math.max(0,Math.min(1, state.getNormalisedValue()));
+    const a1=-135+norm*270;
+    varc.setAttribute("d", norm<=0.001 ? "" : arcPath(44,-135,a1));
+    const p1=polar(15,a1), p2=polar(29,a1);
+    vind.setAttribute("x1",p1.x.toFixed(2)); vind.setAttribute("y1",p1.y.toFixed(2));
+    vind.setAttribute("x2",p2.x.toFixed(2)); vind.setAttribute("y2",p2.y.toFixed(2));
+    try { kval.textContent = formatter(state.getScaledValue()); } catch(e){}
+  }
+  state.valueChangedEvent.addListener(render);
+  state.propertiesChangedEvent.addListener(render);
+
+  dial.addEventListener("pointerdown", e=>{
+    e.preventDefault(); dial.setPointerCapture(e.pointerId);
+    const startY=e.clientY, startNorm=state.getNormalisedValue();
+    const move=ev=>{ const dy=startY-ev.clientY; const fine=ev.shiftKey?0.25:1;
+      let nv=startNorm + (dy/200)*fine; nv=Math.max(0,Math.min(1,nv)); state.setNormalisedValue(nv); };
+    const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); };
+    window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+  });
+  dial.addEventListener("dblclick", ()=>{
+    if(def===undefined) return;
+    const pr=state.properties; if(!pr) return;
+    const norm=(Number(def)-pr.start)/((pr.end-pr.start)||1); state.setNormalisedValue(Math.max(0,Math.min(1,norm)));
+  });
+  render();
+  return { render };
+}
+
+// ---------- selector (segmented, choice param) ----------
+function makeSelector(el){
+  const id=el.dataset.selector, label=el.dataset.label, accent=el.dataset.accent||"#8FD9E6";
+  const state=Juce.getComboBoxState(id);
+  const wrap=document.createElement("div"); wrap.className="segs";
+  el.innerHTML=`<div class="slabel">${label}</div>`; el.appendChild(wrap);
+  function pretty(s){ return String(s).replace(/x$/,"×"); }
+  function build(){
+    const choices=(state.properties&&state.properties.choices)||[]; wrap.innerHTML="";
+    const idx=state.getChoiceIndex();
+    choices.forEach((c,i)=>{
+      const b=document.createElement("button"); b.textContent=pretty(c);
+      if(i===idx){ b.style.background="linear-gradient(180deg,#2C3138,#1B1E23)"; b.style.color=accent;
+        b.style.boxShadow=`0 0 0 1px ${accent}8c,0 0 10px ${accent}4d,inset 0 1px 0 rgba(255,255,255,0.06)`; }
+      b.addEventListener("click",()=>state.setChoiceIndex(i));
+      wrap.appendChild(b);
+    });
+  }
+  state.valueChangedEvent.addListener(build);
+  state.propertiesChangedEvent.addListener(build);
+  build();
+  return { build };
+}
+
+// ---------- bypass toggle ----------
+const bypassState=Juce.getToggleState("bypass");
+const bypassBtn=document.getElementById("bypass");
+function renderBypass(){ const on=bypassState.getValue(); bypassBtn.classList.toggle("on",on); bypassBtn.textContent=on?"BYPASSED":"BYPASS"; }
+bypassState.valueChangedEvent.addListener(renderBypass);
+bypassBtn.addEventListener("click",()=>bypassState.setValue(!bypassState.getValue()));
+renderBypass();
+
+// ---------- build all controls ----------
+const knobs=[...document.querySelectorAll("[data-knob]")].map(makeKnob);
+const selectors=[...document.querySelectorAll("[data-selector]")].map(makeSelector);
+
+// ---------- gather all param states for preview + presets ----------
+const S={};
+["in_gain","out_gain","sat_drive","sat_bias","sat_mix","clip_drive","clip_knee","clip_ceiling","lim_threshold","lim_ceiling","lim_release"]
+  .forEach(id=>S[id]=Juce.getSliderState(id));
+const C={ sat_voicing:Juce.getComboBoxState("sat_voicing"), oversampling:Juce.getComboBoxState("oversampling"), adaa_order:Juce.getComboBoxState("adaa_order") };
+
+function params(){
+  const p={};
+  for(const k in S){ try{ p[k]=S[k].getScaledValue(); }catch(e){ p[k]=0; } }
+  const vo=C.sat_voicing.properties?.choices||["Tube"]; p.sat_voicing=vo[C.sat_voicing.getChoiceIndex()]||"Tube";
+  const os=C.oversampling.properties?.choices||["4x"]; p.oversampling=(os[C.oversampling.getChoiceIndex()]||"4x").replace(/x$/,"×");
+  const ad=C.adaa_order.properties?.choices||["2nd"]; p.adaa_order=ad[C.adaa_order.getChoiceIndex()]||"2nd";
+  p.bypass=bypassState.getValue();
+  return p;
+}
+
+// ---------- presets (writes real params) ----------
+const INIT={in_gain:0,sat_voicing:'Tube',sat_drive:6,sat_bias:20,sat_mix:100,clip_drive:2,clip_knee:35,clip_ceiling:-3,oversampling:'4x',adaa_order:'2nd',lim_threshold:-6,lim_ceiling:-1,lim_release:60,out_gain:0,bypass:false};
+const PRESETS=[
+  {name:'Init',params:{}},
+  {name:'Glue Master',params:{sat_voicing:'Tube',sat_drive:8,sat_bias:30,sat_mix:60,clip_drive:10,clip_knee:55,clip_ceiling:-2,lim_threshold:-8,lim_ceiling:-1,lim_release:120}},
+  {name:'Loud & Clean',params:{sat_voicing:'Tape',sat_drive:4,sat_bias:10,sat_mix:40,clip_drive:20,clip_knee:25,clip_ceiling:-1,lim_threshold:-12,lim_ceiling:-1,lim_release:40}},
+  {name:'Tape Warmth',params:{sat_voicing:'Tape',sat_drive:14,sat_bias:45,sat_mix:100,clip_drive:6,clip_knee:80,clip_ceiling:-4,lim_threshold:-5,lim_ceiling:-1.2,lim_release:200}},
+  {name:'Transient Tamer',params:{sat_voicing:'Xfmr',sat_drive:10,sat_bias:15,sat_mix:70,clip_drive:26,clip_knee:10,clip_ceiling:-1,lim_threshold:-3,lim_ceiling:-1,lim_release:15}},
+  {name:'Brickwall +6',params:{sat_voicing:'Xfmr',sat_drive:18,sat_bias:60,sat_mix:85,clip_drive:30,clip_knee:5,clip_ceiling:-0.5,lim_threshold:-14,lim_ceiling:-1,lim_release:30}},
+];
+let presetIdx=0;
+function setSliderScaled(st,val){ const pr=st.properties; if(!pr) return; const n=(val-pr.start)/((pr.end-pr.start)||1); st.setNormalisedValue(Math.max(0,Math.min(1,n))); }
+function setComboLabel(st,label){ const ch=(st.properties&&st.properties.choices)||[]; const i=ch.indexOf(label); if(i>=0) st.setChoiceIndex(i); }
+function applyPreset(i){
+  presetIdx=(i+PRESETS.length)%PRESETS.length;
+  const merged={...INIT,...PRESETS[presetIdx].params};
+  for(const k in S) if(k in merged) setSliderScaled(S[k],merged[k]);
+  setComboLabel(C.sat_voicing,merged.sat_voicing); setComboLabel(C.oversampling,merged.oversampling); setComboLabel(C.adaa_order,merged.adaa_order);
+  bypassState.setValue(!!merged.bypass);
+  document.getElementById("presetName").textContent=PRESETS[presetIdx].name;
+}
+document.getElementById("prevPreset").addEventListener("click",()=>applyPreset(presetIdx-1));
+document.getElementById("nextPreset").addEventListener("click",()=>applyPreset(presetIdx+1));
+
+// ---------- audio ingest: decode base64 wave frames from C++, keep only the latest ----------
+// Pure receive/decode — NO drawing here. The renderer pulls the current frame via Wave.latest().
+// inW/outW are already latency-aligned in the processor (dry delayed by internal L), so a given
+// index in inW and outW is the same instant of audio.
+let WAVE = null; // back-compat handle for draws not yet migrated to Wave.latest()
+const Wave = (() => {
+  let latest = null; // { inW, outW, sr, n }
+  function onWave(m){
+    if(!m || !m.data) return;
+    const bin = atob(m.data), bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    const f = new Float32Array(bytes.buffer), n = m.n|0;
+    latest = { inW:f.subarray(0,n), outW:f.subarray(n,2*n), sr:m.sr||48000, n };
+    WAVE = latest;
+  }
+  if(window.__JUCE__ && window.__JUCE__.backend)
+    window.__JUCE__.backend.addEventListener("wave", onWave);
+  return { latest: () => latest };
+})();
+
+// Probed transfer curve from C++: Float32Array of y for x in [-1,1] (the ACTUAL sat+clip curve,
+// including the morphing knee). Pushed only when a curve-shaping param changes.
+let TRANSFER = null;
+if(window.__JUCE__ && window.__JUCE__.backend)
+  window.__JUCE__.backend.addEventListener("transfer",(m)=>{
+    if(!m || !m.data) return;
+    const bin=atob(m.data), bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    TRANSFER=new Float32Array(bytes.buffer);
+  });
+function refParams(){
+  const g=st=>{try{return st.getScaledValue();}catch(e){return 0;}};
+  const os=C.oversampling.properties?.choices||["4x"], ad=C.adaa_order.properties?.choices||["2nd"];
+  return { clip_ceiling:g(S.clip_ceiling), lim_ceiling:g(S.lim_ceiling),
+           os:(os[C.oversampling.getChoiceIndex()]||"4x").replace(/x$/,"×"),
+           adaa:ad[C.adaa_order.getChoiceIndex()]||"2nd" };
+}
+
+// ---------- oscilloscope sync: autocorrelation period + zero-cross trigger ----------
+// Shows an integer number of periods locked to a rising zero-cross → a held note
+// stands still even for complex waveforms (zero-cross alone can't do this).
+function ifft(re,im){ const n=re.length; for(let i=0;i<n;i++)im[i]=-im[i]; fft(re,im); for(let i=0;i<n;i++){re[i]/=n;im[i]=-im[i]/n;} }
+function risingCross(x,from){ for(let i=Math.max(1,from);i<x.length-1;i++){ if(x[i-1]<0&&x[i]>=0)return i; } return -1; }
+function detectPeriod(x,sr){ const N=x.length,re=new Float64Array(N),im=new Float64Array(N);
+  let mean=0; for(let i=0;i<N;i++)mean+=x[i]; mean/=N;
+  let energy=0; for(let i=0;i<N;i++){const v=x[i]-mean;re[i]=v;im[i]=0;energy+=v*v;}
+  if(energy<1e-5)return 0;
+  fft(re,im); for(let i=0;i<N;i++){re[i]=re[i]*re[i]+im[i]*im[i];im[i]=0;} ifft(re,im);  // re = autocorrelation
+  const r0=re[0]||1, minLag=Math.max(24,Math.floor(sr/1500)), maxLag=Math.min(N>>1,Math.floor(sr/30));
+  let best=0,bestLag=0; for(let lag=minLag;lag<=maxLag;lag++){ const v=re[lag]/r0; if(v>best){best=v;bestLag=lag;} }
+  return best>0.2?bestLag:0; }
+
+function prep(cv){ const r=cv.getBoundingClientRect(); const w=Math.max(2,Math.round(r.width)),h=Math.max(2,Math.round(r.height));
+  const dpr=Math.min(2,window.devicePixelRatio||1); if(cv.width!==w*dpr||cv.height!==h*dpr){cv.width=w*dpr;cv.height=h*dpr;}
+  const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,w,h}; }
+
+// ---------- band-limited reconstruction (Lanczos-3 polyphase, 8x) ----------
+// Draws the RECONSTRUCTED waveform, not straight lines between samples, so inter-sample /
+// true peaks (the very thing the clip→limit chain manages) are actually visible.
+function makeLanczos(a, os){
+  const sinc=x=>{ if(Math.abs(x)<1e-8) return 1; const px=Math.PI*x; return Math.sin(px)/px; };
+  const L=t=>(Math.abs(t)<a)?sinc(t)*sinc(t/a):0;
+  const taps=2*a, table=[];
+  for(let p=0;p<os;p++){
+    const frac=p/os, row=new Float64Array(taps); let s=0;
+    for(let t=0;t<taps;t++){ const cf=L(frac + a - 1 - t); row[t]=cf; s+=cf; }
+    if(s!==0) for(let t=0;t<taps;t++) row[t]/=s;   // normalise each phase to unity DC
+    table.push(row);
+  }
+  return {a,os,taps,table};
+}
+const LANCZOS = makeLanczos(3, 8);
+
+// ---------- amplitude axis: linear vs dB (keeps low-level detail visible) ----------
+// Peak math stays in LINEAR everywhere; this warp is applied ONLY at the pixel-mapping step.
+// db=0 -> 1 (full scale), db<=floor -> 0, and overshoot (db>0, i.e. true-peak > 1.0) maps > 1
+// so inter-sample peaks still render above the unity line.
+const AMP = { mode:'lin', floor:-60 };
+function warp(s){
+  if(AMP.mode==='lin') return s;
+  const a=Math.abs(s); if(a<1e-9) return 0;
+  const db=20*Math.log10(a);
+  return Math.sign(s) * (1 - db/AMP.floor);
+}
+{
+  const t=document.getElementById("ampToggle");
+  if(t) t.addEventListener("click",()=>{ AMP.mode = AMP.mode==='lin'?'db':'lin'; t.textContent = AMP.mode==='lin'?'LIN':'dB'; });
+}
+// Reconstruct x → 8x oversampled Float32Array (edge-clamped). Optionally over a sub-range
+// [i0,i1) to avoid oversampling the whole ring when only a window is drawn.
+function reconstruct(x, k=LANCZOS, i0=0, i1=x.length){
+  const {a,os,taps,table}=k, N=x.length;
+  const at=i=>x[i<0?0:(i>=N?N-1:i)];
+  const span=Math.max(0,i1-i0), out=new Float32Array(span*os);
+  for(let s=0;s<span;s++){ const i=i0+s;
+    for(let p=0;p<os;p++){ let acc=0; for(let t=0;t<taps;t++) acc+=at(i-a+1+t)*table[p][t]; out[s*os+p]=acc; }
+  }
+  return out;
+}
+
+// Draw one channel as a RECONSTRUCTED (band-limited, 8x) trace over samples [t0,t0+span):
+//   dense (>=1.2 recon points/pixel) → per-pixel min/max bars (never hides an inter-sample peak)
+//   sparse (zoomed to sample level)  → smooth reconstructed line
+// Y applies the amplitude warp (linear/dB); amplitude math itself stays linear.
+function drawWave(ctx,w,Y,arr,t0,span,st){
+  const rec=reconstruct(arr,LANCZOS,t0,t0+span), M=rec.length, perPx=M/w;
+  ctx.save(); ctx.strokeStyle=st.color; ctx.lineWidth=st.width;
+  if(st.glow){ ctx.shadowBlur=st.glow; ctx.shadowColor="rgba(255,138,42,0.7)"; }
+  ctx.beginPath();
+  if(perPx>=1.2){
+    for(let px=0;px<w;px++){
+      const a=Math.floor(px*perPx), b=Math.min(M,Math.floor((px+1)*perPx));
+      let mn=Infinity,mx=-Infinity;
+      for(let k=a;k<b;k++){ const v=rec[k]; if(v<mn)mn=v; if(v>mx)mx=v; }
+      if(mn===Infinity)continue;
+      const x=px+0.5; ctx.moveTo(x,Y(mx)); ctx.lineTo(x,Y(mn));
+    }
+  } else {
+    for(let k=0;k<M;k++){ const x=k/M*w, y=Y(rec[k]); k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+// Clipped-tip highlight: shade where the reconstructed dry peak sticks above the clip ceiling
+// (±ceil) — the tips the clipper removes. Reconstructed, so it catches inter-sample overs.
+function drawClipHighlight(ctx,w,Y,inW,t0,span,ceil){
+  const recIn=reconstruct(inW,LANCZOS,t0,t0+span), M=recIn.length, perPx=M/w; if(M<1)return;
+  ctx.save(); ctx.fillStyle="rgba(255,69,58,0.30)";
+  for(let px=0;px<w;px++){
+    const a=Math.floor(px*perPx), b=Math.min(M,Math.floor((px+1)*perPx)); if(b<=a)continue;
+    let mx=-2,mn=2; for(let k=a;k<b;k++){ const v=recIn[k]; if(v>mx)mx=v; if(v<mn)mn=v; }
+    const x=px-0.5;
+    if(mx> ceil) ctx.fillRect(x, Y(mx),   1, Y(ceil)-Y(mx));    // positive tip above +ceil
+    if(mn<-ceil) ctx.fillRect(x, Y(-ceil),1, Y(mn)-Y(-ceil));   // negative tip below -ceil
+  }
+  ctx.restore();
+}
+
+function drawScope(){ const cv=document.getElementById("scope"),c=prep(cv);if(!c)return;const{ctx,w,h}=c;ctx.clearRect(0,0,w,h);
+  const cy=h/2,amp=h/2/1.12,Y=s=>cy-Math.max(-1.15,Math.min(1.15,warp(s)))*amp;
+  ctx.strokeStyle="rgba(255,255,255,0.045)";ctx.lineWidth=1;
+  for(let i=1;i<8;i++){const x=w*i/8;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let j=1;j<4;j++){const y=h*j/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  ctx.strokeStyle="rgba(255,255,255,0.12)";ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(w,cy);ctx.stroke();
+  const rp=refParams(),lc=Math.pow(10,rp.lim_ceiling/20),cc=Math.pow(10,rp.clip_ceiling/20);
+  ctx.setLineDash([4,4]);   // ceiling refs use Y → they track the dB/linear toggle
+  ctx.strokeStyle="rgba(242,149,58,0.35)";[lc,-lc].forEach(v=>{ctx.beginPath();ctx.moveTo(0,Y(v));ctx.lineTo(w,Y(v));ctx.stroke();});
+  ctx.strokeStyle="rgba(143,217,230,0.18)";[cc,-cc].forEach(v=>{ctx.beginPath();ctx.moveTo(0,Y(v));ctx.lineTo(w,Y(v));ctx.stroke();});
+  ctx.setLineDash([]);
+  const WAVE=Wave.latest(); if(!WAVE)return; const {inW,outW,sr}=WAVE;
+  // Trigger on the latency-aligned dry input: integer periods locked to a rising zero-cross.
+  const period=detectPeriod(inW,sr||48000);
+  let t0=0,span=inW.length;
+  if(period>0){ const cycles=Math.max(1,Math.min(3,Math.floor((inW.length*0.92)/period))); span=period*cycles;
+    t0=risingCross(inW,Math.floor(inW.length*0.03)); if(t0<0)t0=0;
+    if(t0+span>=inW.length)t0=Math.max(0,inW.length-span-1); }
+  span=Math.max(2,Math.min(span, inW.length-t0-1));
+  // Clipped tips (removed by the clipper) shaded under the traces — skip in bypass.
+  if(!bypassState.getValue()) drawClipHighlight(ctx,w,Y,inW,t0,span,cc);
+  // inW/outW share t0/span — they are sample-aligned in the processor, so an impulse lines up.
+  drawWave(ctx,w,Y,inW, t0,span,{color:"rgba(154,211,222,0.5)",width:1.4,glow:0});  // dry (ghost)
+  drawWave(ctx,w,Y,outW,t0,span,{color:"#FF8A2A",width:2,glow:7});                  // wet
+}
+
+// TRANSFER = the ACTUAL sat→clip curve, probed from the DSP (ramp through the real engine),
+// so it reflects the morphing hard↔soft knee exactly — not a JS approximation. A live dot
+// shows where the current signal peak sits on the curve.
+function drawTransfer(){ const cv=document.getElementById("transfer"),c=prep(cv);if(!c)return;const{ctx,w,h}=c;ctx.clearRect(0,0,w,h);
+  const pad=10,cx=w/2,cy=h/2,sx=(w/2-pad),sy=(h/2-pad);
+  ctx.strokeStyle="rgba(255,255,255,0.06)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,pad);ctx.lineTo(cx,h-pad);ctx.moveTo(pad,cy);ctx.lineTo(w-pad,cy);ctx.stroke();
+  ctx.setLineDash([3,3]);ctx.strokeStyle="rgba(143,217,230,0.3)";ctx.beginPath();ctx.moveTo(cx-sx,cy+sy);ctx.lineTo(cx+sx,cy-sy);ctx.stroke();ctx.setLineDash([]);  // unity diagonal ref
+  if(!TRANSFER || TRANSFER.length<2) return;
+  const N=TRANSFER.length;
+  ctx.shadowBlur=6;ctx.shadowColor="rgba(255,138,42,0.6)";ctx.strokeStyle="#FF8A2A";ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<N;i++){ const x=-1+2*i/(N-1), y=Math.max(-1.15,Math.min(1.15,TRANSFER[i])), px=cx+x*sx, py=cy-y*sy; i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+  ctx.stroke();ctx.shadowBlur=0;
+  // live operating point: current input peak (x) vs output peak (y), riding the curve (+ mirror).
+  const WAVE=Wave.latest();
+  if(WAVE){ const {inW,outW}=WAVE; let xp=0,yp=0;
+    for(let i=0;i<inW.length;i++){ const a=Math.abs(inW[i]); if(a>xp)xp=a; }
+    for(let i=0;i<outW.length;i++){ const a=Math.abs(outW[i]); if(a>yp)yp=a; }
+    xp=Math.min(1,xp); yp=Math.min(1.15,yp);
+    ctx.fillStyle="#8FD9E6";
+    ctx.beginPath();ctx.arc(cx+xp*sx,cy-yp*sy,3.2,0,6.2832);ctx.fill();
+    ctx.beginPath();ctx.arc(cx-xp*sx,cy+yp*sy,3.2,0,6.2832);ctx.fill();
+  }
+}
+
+function fft(re,im){ const n=re.length; for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1)j^=bit; j^=bit;
+    if(i<j){const tr=re[i];re[i]=re[j];re[j]=tr;const ti=im[i];im[i]=im[j];im[j]=ti;} }
+  for(let len=2;len<=n;len<<=1){ const ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let k=0;k<len/2;k++){ const a=i+k,b=i+k+(len>>1);
+      const vr=re[b]*cr-im[b]*ci,vi=re[b]*ci+im[b]*cr; re[b]=re[a]-vr;im[b]=im[a]-vi;re[a]+=vr;im[a]+=vi;
+      const ncr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=ncr; } } } }
+function drawSpectrum(){ const cv=document.getElementById("spectrum"),c=prep(cv);if(!c)return;const{ctx,w,h}=c;ctx.clearRect(0,0,w,h);
+  const base=h-12,top=15,pad=10;
+  ctx.strokeStyle="rgba(255,255,255,0.06)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,base);ctx.lineTo(w-pad,base);ctx.stroke();
+  if(!WAVE)return; const {outW}=WAVE,N=outW.length,re=new Float64Array(N),im=new Float64Array(N);
+  for(let i=0;i<N;i++){const win=0.5-0.5*Math.cos(2*Math.PI*i/(N-1));re[i]=outW[i]*win;im[i]=0;}
+  fft(re,im); const half=N>>1,mags=new Float64Array(half);
+  for(let i=0;i<half;i++)mags[i]=Math.sqrt(re[i]*re[i]+im[i]*im[i]);
+  const bands=28,fmin=2,fmax=half-1;
+  for(let b=0;b<bands;b++){ const f0=Math.round(fmin*Math.pow(fmax/fmin,b/bands)),f1=Math.max(f0+1,Math.round(fmin*Math.pow(fmax/fmin,(b+1)/bands)));
+    let m=0;for(let k=f0;k<f1&&k<half;k++)if(mags[k]>m)m=mags[k];
+    const norm=Math.max(0,Math.min(1,(20*Math.log10(m+1e-9)+72)/72)),bh=Math.max(1,norm*(base-top));
+    const bw=(w-pad*2)/bands,x=pad+b*bw+bw*0.15;
+    ctx.fillStyle="rgba(242,149,58,"+(0.32+0.55*norm)+")";ctx.shadowBlur=3;ctx.shadowColor="rgba(242,149,58,0.4)";
+    ctx.fillRect(x,base-bh,bw*0.7,bh);} ctx.shadowBlur=0; }
+
+function drawFrame(){ drawScope(); drawTransfer(); drawSpectrum();
+  const rp=refParams(); document.getElementById("chainTag").textContent=rp.os+" OVERSAMPLE · ADAA "+rp.adaa;
+  requestAnimationFrame(drawFrame); }
+requestAnimationFrame(drawFrame);
+
+// ---------- REAL meters (pushed from C++) ----------
+const hold={in:0,out:0};
+function dbPct(db,lo,hi){ return Math.max(0,Math.min(1,(db-lo)/(hi-lo))); }
+function meter(inDb,outDb,grDb){
+  const ip=dbPct(inDb,-42,6),op=dbPct(outDb,-42,6);
+  document.getElementById("inFill").style.height=(ip*100).toFixed(1)+"%";
+  document.getElementById("outFill").style.height=(op*100).toFixed(1)+"%";
+  hold.in=Math.min(1,Math.max(hold.in-0.02,ip)); hold.out=Math.min(1,Math.max(hold.out-0.02,op));
+  document.getElementById("inTick").style.bottom=(hold.in*100).toFixed(1)+"%";
+  document.getElementById("outTick").style.bottom=(hold.out*100).toFixed(1)+"%";
+  document.getElementById("inNum").textContent=inDb<=-42?"−∞":inDb.toFixed(1);
+  const outEl=document.getElementById("outNum");
+  outEl.textContent=outDb<=-42?"−∞":outDb.toFixed(1);
+  document.getElementById("grFill").style.height=(dbPct(grDb,0,18)*100)+"%";
+  document.getElementById("grNum").textContent=grDb.toFixed(1);
+  // OUT is now dBTP (true peak). State vs the limiter ceiling target: green under, orange over
+  // the ceiling, red over 0 dBTP (an actual inter-sample over).
+  let ceil=-1; try{ ceil=S.lim_ceiling.getScaledValue(); }catch(e){}
+  const led=document.getElementById("led"),lab=document.getElementById("ledlabel");
+  let col="#35E0C0",txt="CLEAN",onum="";
+  if(bypassState.getValue()){col="#5A626B";txt="BYPASS";}
+  else if(outDb>0.0){col="#FF453A";txt="OVER 0 dBTP";onum="#FF453A";}
+  else if(outDb>ceil){col="#F2953A";txt="OVER CEILING";onum="#F2953A";}
+  else if(grDb>0.3){col="#F2953A";txt="LIMITING";}
+  outEl.style.color=onum;   // '' → falls back to the .mnum class colour
+  led.style.background=col;led.style.boxShadow="0 0 8px "+col;lab.style.color=col;lab.textContent=txt;
+}
+if(window.__JUCE__&&window.__JUCE__.backend){
+  window.__JUCE__.backend.addEventListener("meters",(m)=>{ if(m) meter(+m.in,+m.out,+m.gr); });
+}
+
+// ---------- zoom-to-fit: scale the rack to fill the window (drag any corner) ----------
+const rackEl=document.querySelector(".rack");
+function fit(){
+  if(!rackEl)return;
+  const rw=rackEl.offsetWidth, rh=rackEl.offsetHeight;   // natural size (ignores transform)
+  if(!rw||!rh)return;
+  const s=Math.min(window.innerWidth/(rw+24), window.innerHeight/(rh+24));
+  rackEl.style.transform=`scale(${s})`;
+}
+window.addEventListener("resize",fit);
+if(window.ResizeObserver) new ResizeObserver(fit).observe(rackEl);
+fit(); setTimeout(fit,60); setTimeout(fit,250);
+</script>
+</body>
+</html>
