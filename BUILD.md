@@ -101,6 +101,60 @@ Export each certificate (with its private key) from Keychain as a **`.p12`**, th
 With all of these set, tagging a release produces a **signed, notarized, stapled `.pkg`**. With none
 set, the workflow still runs and produces unsigned zips for testing — **no secrets are ever hardcoded.**
 
+### Generating the Developer ID certs **from Windows** (no Mac)
+Apple's own docs assume Keychain on a Mac, but you can create both Developer ID certificates on
+Windows with **OpenSSL** (ships with Git for Windows — run these in **Git Bash**). You still need a
+paid **Apple Developer Program** membership, and Developer ID certs can only be created by the
+account's **Account Holder**.
+
+1. **Make a private key + CSR for each cert** (one key per cert is cleanest):
+   ```bash
+   openssl genrsa -out devid_app.key 2048
+   openssl req -new -key devid_app.key -out devid_app.csr \
+     -subj "/emailAddress=YOUR_APPLE_ID/CN=Developer ID Application/C=US"
+
+   openssl genrsa -out devid_installer.key 2048
+   openssl req -new -key devid_installer.key -out devid_installer.csr \
+     -subj "/emailAddress=YOUR_APPLE_ID/CN=Developer ID Installer/C=US"
+   ```
+2. **Create the certs on the portal.** developer.apple.com → *Certificates, Identifiers & Profiles*
+   → Certificates → **+** → choose **Developer ID Application**, upload `devid_app.csr`, download
+   `developerID_application.cer`. Repeat, choosing **Developer ID Installer**, upload
+   `devid_installer.csr`, download `developerID_installer.cer`.
+3. **Grab Apple's intermediate** so the chain is complete inside the `.p12`: from
+   <https://www.apple.com/certificateauthority/> download **Developer ID – G2** (`DeveloperIDG2CA.cer`).
+4. **Bundle each leaf cert + its key + the intermediate into a `.p12`:**
+   ```bash
+   openssl x509 -inform DER -in developerID_application.cer -out devid_app.pem
+   openssl x509 -inform DER -in developerID_installer.cer  -out devid_installer.pem
+   openssl x509 -inform DER -in DeveloperIDG2CA.cer         -out DeveloperIDG2CA.pem
+
+   # Use the SAME export password for both — the workflow has a single CERT_PASSWORD.
+   openssl pkcs12 -export -out devid_app.p12 -inkey devid_app.key \
+     -in devid_app.pem -certfile DeveloperIDG2CA.pem -name "Developer ID Application"
+   openssl pkcs12 -export -out devid_installer.p12 -inkey devid_installer.key \
+     -in devid_installer.pem -certfile DeveloperIDG2CA.pem -name "Developer ID Installer"
+   ```
+5. **Base64-encode both `.p12` files** (single line, no wrapping):
+   ```bash
+   base64 -w0 devid_app.p12       > devid_app.p12.b64
+   base64 -w0 devid_installer.p12 > devid_installer.p12.b64
+   ```
+   (PowerShell alt: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("devid_app.p12"))`.)
+6. **App-specific password:** appleid.apple.com → *Sign-In and Security* → *App-Specific Passwords*
+   → generate one → this is `APPLE_APP_PASSWORD`. **Team ID:** developer.apple.com → *Membership*
+   (10 chars) → `APPLE_TEAM_ID`.
+7. **Set the 6 repository secrets** (github.com/forexfayella-pixel/detail-forge → Settings → Secrets
+   and variables → Actions → *New repository secret*): paste the two `.b64` file contents into
+   `DEVELOPER_ID_APP_CERT_P12_BASE64` / `DEVELOPER_ID_INSTALLER_CERT_P12_BASE64`, the `.p12` export
+   password into `CERT_PASSWORD`, and the three Apple values above.
+8. **Delete the local key material** when done — `devid_*.key`, `devid_*.p12`, `*.b64`, `*.csr`,
+   `*.cer`, `*.pem` are all signing material and must not be committed.
+
+> Sanity check before you tag: the workflow's *"Do we have signing secrets?"* step only needs
+> `DEVELOPER_ID_APP_CERT_P12_BASE64` **and** `APPLE_TEAM_ID` to switch into the signing path, but
+> notarization will fail unless **all six** are correct. Set all six before tagging.
+
 ---
 
 ## Plugin identity (for auval / hosts)
