@@ -26,6 +26,8 @@ DetailForgeProcessor::DetailForgeProcessor()
     clipDrive   = apvts.getRawParameterValue ("clip_drive");
     clipKnee    = apvts.getRawParameterValue ("clip_knee");
     clipCeiling = apvts.getRawParameterValue ("clip_ceiling");
+    clipDetail  = apvts.getRawParameterValue ("clip_detail");
+    clipDetailF = apvts.getRawParameterValue ("clip_detail_freq");
     osParam     = apvts.getRawParameterValue ("oversampling");
     adaaParam   = apvts.getRawParameterValue ("adaa_order");
     inGain      = apvts.getRawParameterValue ("in_gain");
@@ -73,6 +75,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout DetailForgeProcessor::create
     p.add (std::make_unique<APF>(juce::ParameterID{"clip_drive",1},   "Clip Drive",   Range{0.f,36.f,0.01f},  2.f, dB("dB")));
     p.add (std::make_unique<APF>(juce::ParameterID{"clip_knee",1},    "Clip Knee",    Range{0.f,100.f,0.1f}, 35.f, dB("%")));
     p.add (std::make_unique<APF>(juce::ParameterID{"clip_ceiling",1}, "Clip Ceiling", Range{-18.f,0.f,0.01f},-3.f, dB("dB")));
+    // Detail preservation: amount folds the HF of the clipped-off peaks back in (0 = plain clip);
+    // freq is the HF split point. Log-skewed so the 1-3 kHz sweet spot has resolution.
+    p.add (std::make_unique<APF>(juce::ParameterID{"clip_detail",1}, "Clip Detail", Range{0.f,200.f,0.1f}, 0.f, dB("%")));
+    {
+        Range fr{300.f, 12000.f, 1.f}; fr.setSkewForCentre (3000.f);
+        p.add (std::make_unique<APF>(juce::ParameterID{"clip_detail_freq",1}, "Clip Detail Freq", fr, 3000.f, dB("Hz")));
+    }
     p.add (std::make_unique<APC>(juce::ParameterID{"oversampling",1}, "Oversampling",
                                  juce::StringArray{"1x","2x","4x","8x","16x"}, 2));
     p.add (std::make_unique<APC>(juce::ParameterID{"adaa_order",1},   "ADAA Order",
@@ -94,6 +103,7 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     currentSampleRate = sampleRate;
     engines.clear(); maps.clear();
     driveZones.clear(); kneeZones.clear(); ceilingZones.clear(); orderZones.clear();
+    detailZones.clear(); detailFreqZones.clear();
     const int nch = juce::jmax (1, getTotalNumOutputChannels());
     for (int c = 0; c < nch; ++c)
     {
@@ -102,10 +112,12 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
         auto m = std::make_unique<MapUI>();
         e->buildUserInterface (m.get());
         // Resolve zones once here (string lookup off the audio thread).
-        driveZones.push_back   (m->getParamZone ("/DetailForgeClip/Drive"));
-        kneeZones.push_back    (m->getParamZone ("/DetailForgeClip/Knee"));
-        ceilingZones.push_back (m->getParamZone ("/DetailForgeClip/Ceiling"));
-        orderZones.push_back   (m->getParamZone ("/DetailForgeClip/Order"));
+        driveZones.push_back      (m->getParamZone ("/DetailForgeClip/Drive"));
+        kneeZones.push_back       (m->getParamZone ("/DetailForgeClip/Knee"));
+        ceilingZones.push_back    (m->getParamZone ("/DetailForgeClip/Ceiling"));
+        orderZones.push_back      (m->getParamZone ("/DetailForgeClip/Order"));
+        detailZones.push_back     (m->getParamZone ("/DetailForgeClip/Detail"));
+        detailFreqZones.push_back (m->getParamZone ("/DetailForgeClip/DetailFreq"));
         engines.push_back (std::move (e));
         maps.push_back (std::move (m));
     }
@@ -115,10 +127,12 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     probeEngine->init ((int) sampleRate);
     probeMap = std::make_unique<MapUI>();
     probeEngine->buildUserInterface (probeMap.get());
-    pDrive = probeMap->getParamZone ("/DetailForgeClip/Drive");
-    pKnee  = probeMap->getParamZone ("/DetailForgeClip/Knee");
-    pCeil  = probeMap->getParamZone ("/DetailForgeClip/Ceiling");
-    pOrder = probeMap->getParamZone ("/DetailForgeClip/Order");
+    pDrive   = probeMap->getParamZone ("/DetailForgeClip/Drive");
+    pKnee    = probeMap->getParamZone ("/DetailForgeClip/Knee");
+    pCeil    = probeMap->getParamZone ("/DetailForgeClip/Ceiling");
+    pOrder   = probeMap->getParamZone ("/DetailForgeClip/Order");
+    pDetail  = probeMap->getParamZone ("/DetailForgeClip/Detail");
+    pDetailF = probeMap->getParamZone ("/DetailForgeClip/DetailFreq");
 
     // Oversamplers for orders 1..4 (2x/4x/8x/16x). Low-latency polyphase IIR,
     // integer latency so host reporting is exact.
@@ -166,13 +180,19 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     setLatencySamples (lastReportedLatency);
 }
 
+// detailFreqHz is the caller-side value ALREADY divided by the oversampling factor, so the
+// filter — computed by the engine against its base init() rate — lands on the intended Hz at
+// the actual (oversampled) running rate. The bilinear prewarp makes that scaling exact.
 void DetailForgeProcessor::runClip (float* data, int numSamples, int ch,
-                                    float driveDb, float kneeN, float ceilDb, float orderN) noexcept
+                                    float driveDb, float kneeN, float ceilDb, float orderN,
+                                    float detailN, float detailFreqHz) noexcept
 {
-    if (auto* z = driveZones[(size_t) ch])   *z = (FAUSTFLOAT) driveDb;
-    if (auto* z = kneeZones[(size_t) ch])    *z = (FAUSTFLOAT) kneeN;
-    if (auto* z = ceilingZones[(size_t) ch]) *z = (FAUSTFLOAT) ceilDb;
-    if (auto* z = orderZones[(size_t) ch])   *z = (FAUSTFLOAT) orderN;
+    if (auto* z = driveZones[(size_t) ch])      *z = (FAUSTFLOAT) driveDb;
+    if (auto* z = kneeZones[(size_t) ch])       *z = (FAUSTFLOAT) kneeN;
+    if (auto* z = ceilingZones[(size_t) ch])    *z = (FAUSTFLOAT) ceilDb;
+    if (auto* z = orderZones[(size_t) ch])      *z = (FAUSTFLOAT) orderN;
+    if (auto* z = detailZones[(size_t) ch])     *z = (FAUSTFLOAT) detailN;
+    if (auto* z = detailFreqZones[(size_t) ch]) *z = (FAUSTFLOAT) detailFreqHz;
     engines[(size_t) ch]->compute (numSamples, &data, &data);   // in-place is safe
 }
 
@@ -214,6 +234,7 @@ void DetailForgeProcessor::releaseResources()
 {
     engines.clear(); maps.clear();
     driveZones.clear(); kneeZones.clear(); ceilingZones.clear(); orderZones.clear();
+    detailZones.clear(); detailFreqZones.clear();
     oversamplers.clear();
     tpUpIn.reset(); tpUpOut.reset();
 }
@@ -287,7 +308,15 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     const float kneeN   = clipKnee    != nullptr ? clipKnee->load() * 0.01f    : 0.35f; // % -> 0..1
     const float ceilDb  = clipCeiling != nullptr ? clipCeiling->load()         : -3.0f;
     const float orderN  = adaaParam   != nullptr ? adaaParam->load()           : 2.0f;  // 0/1/2
+    const float detailN = clipDetail  != nullptr ? clipDetail->load() * 0.01f  : 0.0f;  // % -> 0..2
+    const float detailF = clipDetailF != nullptr ? clipDetailF->load()         : 3000.f; // Hz
     const int   osIndex = osParam     != nullptr ? (int) osParam->load()       : 0;     // 0..4
+
+    // The clip engine runs at the oversampled rate but was init()'d at the base rate, so
+    // pre-divide the detail HF cutoff by the OS factor (1/2/4/8/16 = 1<<osIndex) — exact
+    // under the bilinear prewarp. osIndex 0 (1x) leaves it unchanged.
+    const float osFactor  = (float) (1 << juce::jlimit (0, 4, osIndex));
+    const float detailFhz = detailF / osFactor;
 
     // Saturator (stage 1). Drive dB -> linear; bias %/ceil into 0..0.7; mix %/->0..1.
     const int   satVoice = satVoicing != nullptr ? (int) satVoicing->load()     : 0;     // 0/1/2
@@ -307,7 +336,7 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         {
             auto* d = buffer.getWritePointer (c);
             if (satActive) runSat (d, numSamples, satVoice, satG, satB, satMixN);
-            runClip (d, numSamples, c, driveDb, kneeN, ceilDb, orderN);
+            runClip (d, numSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
         }
     }
     else
@@ -322,7 +351,7 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         {
             auto* d = up.getChannelPointer ((size_t) c);
             if (satActive) runSat (d, osSamples, satVoice, satG, satB, satMixN);
-            runClip (d, osSamples, c, driveDb, kneeN, ceilDb, orderN);
+            runClip (d, osSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
         }
         os.processSamplesDown (sub);
         reportedLatency = (int) std::lround (os.getLatencyInSamples());
@@ -407,10 +436,14 @@ void DetailForgeProcessor::computeTransferCurve (std::vector<float>& ys, int N)
     if (satOn)
         runSat (buf.data(), W + N, voice, sG, sB, sMix);
 
-    if (pDrive) *pDrive = driveDb;
-    if (pKnee)  *pKnee  = kneeN;
-    if (pCeil)  *pCeil  = ceilDb;
-    if (pOrder) *pOrder = orderN;
+    if (pDrive)   *pDrive   = driveDb;
+    if (pKnee)    *pKnee    = kneeN;
+    if (pCeil)    *pCeil    = ceilDb;
+    if (pOrder)   *pOrder   = orderN;
+    // Detail folds HF of transients back in; on this slow monotonic ramp its HF term is ~0, so
+    // the drawn curve is the clipped-body transfer regardless. Zero it to keep the curve exact.
+    if (pDetail)  *pDetail  = 0.0f;
+    if (pDetailF) *pDetailF = 3000.0f;
 
     probeEngine->instanceClear();                 // zero ADAA history between probes
     float* d = buf.data();

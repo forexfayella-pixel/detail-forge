@@ -81,6 +81,8 @@ private:
     std::atomic<float>* clipDrive   = nullptr;   // "clip_drive" (dB) -> Faust
     std::atomic<float>* clipKnee    = nullptr;    // "clip_knee" (%)
     std::atomic<float>* clipCeiling = nullptr;    // "clip_ceiling" (dB)
+    std::atomic<float>* clipDetail  = nullptr;    // "clip_detail" (% -> 0..2 fold-back amount)
+    std::atomic<float>* clipDetailF = nullptr;    // "clip_detail_freq" (Hz, HF split)
     std::atomic<float>* osParam     = nullptr;    // "oversampling" (choice 0..4 -> 1x..16x)
     std::atomic<float>* adaaParam   = nullptr;    // "adaa_order" (choice 0..2)
     std::atomic<float>* inGain      = nullptr;    // "in_gain" (dB)
@@ -90,11 +92,13 @@ private:
     std::vector<std::unique_ptr<ClipEngine>> engines;    // one per channel
     std::vector<std::unique_ptr<MapUI>>      maps;
     std::vector<float*> driveZones, kneeZones, ceilingZones, orderZones;  // cached Faust zones
+    std::vector<float*> detailZones, detailFreqZones;                     // detail-preservation zones
 
     // Dedicated offline engine + resolved zones for the transfer-curve probe (message thread).
     std::unique_ptr<ClipEngine> probeEngine;
     std::unique_ptr<MapUI>      probeMap;
     float *pDrive = nullptr, *pKnee = nullptr, *pCeil = nullptr, *pOrder = nullptr;
+    float *pDetail = nullptr, *pDetailF = nullptr;
 
     // Oversampling: index 1..4 -> orders 1..4 (2x/4x/8x/16x); index 0 -> 1x (bypass).
     std::vector<std::unique_ptr<juce::dsp::Oversampling<float>>> oversamplers;
@@ -117,7 +121,8 @@ private:
     int preTapMask = 0;   // (pow2 size) - 1
     int preTapPos  = 0;   // write index
 
-    void runClip (float* data, int numSamples, int ch, float driveDb, float kneeN, float ceilDb, float orderN) noexcept;
+    void runClip (float* data, int numSamples, int ch, float driveDb, float kneeN, float ceilDb,
+                  float orderN, float detailN, float detailFreqHz) noexcept;
     void runSat  (float* data, int numSamples, int voicing, float g, float bias, float mix) noexcept;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DetailForgeProcessor)

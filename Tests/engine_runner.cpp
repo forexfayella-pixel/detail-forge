@@ -29,6 +29,8 @@ static const char* kDrivePath   = "/DetailForgeClip/Drive";
 static const char* kKneePath    = "/DetailForgeClip/Knee";
 static const char* kCeilingPath  = "/DetailForgeClip/Ceiling";
 static const char* kOrderPath    = "/DetailForgeClip/Order";
+static const char* kDetailPath     = "/DetailForgeClip/Detail";
+static const char* kDetailFreqPath = "/DetailForgeClip/DetailFreq";
 
 static double argd(int argc, char** argv, const char* key, double def) {
     for (int i = 1; i + 1 < argc; ++i) if (!std::strcmp(argv[i], key)) return std::atof(argv[i + 1]);
@@ -86,6 +88,8 @@ int main(int argc, char** argv) {
         ui.setParamValue(kKneePath,    (FAUSTFLOAT) argd(argc, argv, "--knee", 0.0));      // 0 = hard, isolate AA
         ui.setParamValue(kCeilingPath, (FAUSTFLOAT) argd(argc, argv, "--ceiling", 0.0));   // dB, 0 = clip at +/-1
         ui.setParamValue(kOrderPath,   (FAUSTFLOAT) argd(argc, argv, "--order", 2.0));     // 0 off,1 first,2 second
+        ui.setParamValue(kDetailPath,     (FAUSTFLOAT) argd(argc, argv, "--detail", 0.0));      // 0 = off (fold-back amount 0..2)
+        ui.setParamValue(kDetailFreqPath, (FAUSTFLOAT) argd(argc, argv, "--detail-freq", 3000.0)); // HF split (Hz)
         if (signal == "ramp") {
             // Mirror DetailForgeProcessor::computeTransferCurve: warm up at x=-1, then the ramp,
             // and keep only the ramp portion — so this is a faithful ground truth of the probe.

@@ -8,7 +8,7 @@ namespace
     const juce::StringArray kSliderIds {
         "in_gain", "out_gain",
         "sat_drive", "sat_bias", "sat_mix",
-        "clip_drive", "clip_knee", "clip_ceiling",
+        "clip_drive", "clip_knee", "clip_ceiling", "clip_detail", "clip_detail_freq",
         "lim_threshold", "lim_ceiling", "lim_release"
     };
     const juce::StringArray kComboIds { "sat_voicing", "oversampling", "adaa_order" };

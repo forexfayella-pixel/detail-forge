@@ -25,8 +25,18 @@ def run(runner, tmp, **kw):
     cmd = [runner, "--signal", kw.get("signal", "sine"), "--engine", kw["engine"],
            "--fs", str(FS), "--f0", str(kw.get("f0", 1000)), "--drive", str(kw.get("drive", 0)),
            "--amp", str(kw.get("amp", 1.0)), "--n", str(kw.get("n", N)), "--out", out]
+    if "detail" in kw:      cmd += ["--detail", str(kw["detail"])]
+    if "detail_freq" in kw: cmd += ["--detail-freq", str(kw["detail_freq"])]
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return load(out)
+
+
+def band_energy(sig, fs, lo, hi):
+    """Sum of |X|^2 in [lo, hi) Hz (rectangular window; signal is coherently sampled)."""
+    X = np.fft.rfft(sig)
+    f = np.fft.rfftfreq(len(sig), 1.0 / fs)
+    m = (f >= lo) & (f < hi)
+    return float(np.sum(np.abs(X[m]) ** 2))
 
 
 def main():
@@ -63,6 +73,34 @@ def main():
         print(f"M0 gate - latency: {latency} samples  [{'ok' if lat_ok else 'FAIL'}]")
         if not lat_ok:
             failures.append(f"latency={latency} (expected 1)")
+
+        # --- Detail-preserving fold-back ---
+        # The technique restores HF from TRANSIENTS (broadband residual), not from steady-state
+        # harmonic distortion of a tone (on a pure sine it collapses to out = x - LP(residual),
+        # which *cleans up* upper harmonics). So probe with an IMPULSE — the canonical transient
+        # the clipper flattens. Assert:
+        #  (a) Detail=0 reproduces the plain clip bit-exact (adding the params changed nothing), and
+        #  (b) Detail>0 restores HF energy above the split that the clip removed from the transient.
+        print("M0 gate - detail-preserving fold-back:")
+        DF = 4000.0
+        base = run(args.runner, tmp, signal="impulse", engine="adaa", amp=1.0, drive=12,
+                   n=1024, tag="d_base")                                    # no --detail
+        d0   = run(args.runner, tmp, signal="impulse", engine="adaa", amp=1.0, drive=12,
+                   n=1024, tag="d0", detail=0.0, detail_freq=DF)
+        d1   = run(args.runner, tmp, signal="impulse", engine="adaa", amp=1.0, drive=12,
+                   n=1024, tag="d1", detail=1.0, detail_freq=DF)
+        backcompat = float(np.max(np.abs(base - d0)))
+        e0 = band_energy(d0, FS, DF * 1.25, 20000.0)
+        e1 = band_energy(d1, FS, DF * 1.25, 20000.0)
+        ratio = e1 / max(e0, 1e-30)
+        bc_ok = backcompat == 0.0
+        hf_ok = ratio > 1.3
+        print(f"  Detail=0 vs plain clip: max|diff|={backcompat:.2e}  [{'ok' if bc_ok else 'FAIL'}]")
+        print(f"  transient HF >{DF*1.25:.0f}Hz: Detail=0 -> Detail=1 = {ratio:5.2f}x  [{'ok' if hf_ok else 'FAIL'}]")
+        if not bc_ok:
+            failures.append(f"detail=0 not bit-exact vs plain clip (max|diff|={backcompat:.2e})")
+        if not hf_ok:
+            failures.append(f"detail fold-back HF ratio only {ratio:.2f}x (expected > 1.3)")
 
     if failures:
         print("\nM0 GATE FAILED:", file=sys.stderr)

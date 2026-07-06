@@ -124,6 +124,10 @@
           <div class="knob" data-knob="clip_knee" data-label="KNEE" data-accent="#F2953A" data-size="52" data-fmt="knee" data-def="35"></div>
           <div class="knob" data-knob="clip_ceiling" data-label="CEIL" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-3"></div>
         </div>
+        <div class="row between">
+          <div class="knob" data-knob="clip_detail" data-label="DETAIL" data-accent="#FF7A1A" data-size="52" data-fmt="pct" data-def="0"></div>
+          <div class="knob" data-knob="clip_detail_freq" data-label="D-FREQ" data-accent="#8FD9E6" data-size="52" data-fmt="hz" data-def="3000"></div>
+        </div>
         <div class="row" style="align-items:stretch;">
           <div style="flex:1.6;"><div class="sel" data-selector="oversampling" data-label="OVERSAMPLE" data-accent="#8FD9E6"></div></div>
           <div style="flex:1;"><div class="sel" data-selector="adaa_order" data-label="ADAA" data-accent="#8FD9E6"></div></div>
@@ -180,6 +184,7 @@ const fmt = {
   pct: v => Math.round(v) + " %",
   knee:v => Math.round(v) + "%",
   ms:  v => (v < 10 ? v.toFixed(1) : Math.round(v)) + " ms",
+  hz:  v => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 1 : 2) + " kHz" : Math.round(v) + " Hz"),
 };
 
 // ---------- knob (SVG arc, vertical drag) ----------
@@ -232,7 +237,8 @@ function makeKnob(el){
   dial.addEventListener("dblclick", ()=>{
     if(def===undefined) return;
     const pr=state.properties; if(!pr) return;
-    const norm=(Number(def)-pr.start)/((pr.end-pr.start)||1); state.setNormalisedValue(Math.max(0,Math.min(1,norm)));
+    const prop=Math.max(0,Math.min(1,(Number(def)-pr.start)/((pr.end-pr.start)||1)));
+    state.setNormalisedValue(Math.pow(prop, pr.skew??1));
   });
   render();
   return { render };
@@ -276,7 +282,7 @@ const selectors=[...document.querySelectorAll("[data-selector]")].map(makeSelect
 
 // ---------- gather all param states for preview + presets ----------
 const S={};
-["in_gain","out_gain","sat_drive","sat_bias","sat_mix","clip_drive","clip_knee","clip_ceiling","lim_threshold","lim_ceiling","lim_release"]
+["in_gain","out_gain","sat_drive","sat_bias","sat_mix","clip_drive","clip_knee","clip_ceiling","clip_detail","clip_detail_freq","lim_threshold","lim_ceiling","lim_release"]
   .forEach(id=>S[id]=Juce.getSliderState(id));
 const C={ sat_voicing:Juce.getComboBoxState("sat_voicing"), oversampling:Juce.getComboBoxState("oversampling"), adaa_order:Juce.getComboBoxState("adaa_order") };
 
@@ -291,17 +297,22 @@ function params(){
 }
 
 // ---------- presets (writes real params) ----------
-const INIT={in_gain:0,sat_voicing:'Tube',sat_drive:6,sat_bias:20,sat_mix:100,clip_drive:2,clip_knee:35,clip_ceiling:-3,oversampling:'4x',adaa_order:'2nd',lim_threshold:-6,lim_ceiling:-1,lim_release:60,out_gain:0,bypass:false};
+const INIT={in_gain:0,sat_voicing:'Tube',sat_drive:6,sat_bias:20,sat_mix:100,clip_drive:2,clip_knee:35,clip_ceiling:-3,clip_detail:0,clip_detail_freq:3000,oversampling:'4x',adaa_order:'2nd',lim_threshold:-6,lim_ceiling:-1,lim_release:60,out_gain:0,bypass:false};
 const PRESETS=[
   {name:'Init',params:{}},
   {name:'Glue Master',params:{sat_voicing:'Tube',sat_drive:8,sat_bias:30,sat_mix:60,clip_drive:10,clip_knee:55,clip_ceiling:-2,lim_threshold:-8,lim_ceiling:-1,lim_release:120}},
-  {name:'Loud & Clean',params:{sat_voicing:'Tape',sat_drive:4,sat_bias:10,sat_mix:40,clip_drive:20,clip_knee:25,clip_ceiling:-1,lim_threshold:-12,lim_ceiling:-1,lim_release:40}},
+  {name:'Loud & Clean',params:{sat_voicing:'Tape',sat_drive:4,sat_bias:10,sat_mix:40,clip_drive:20,clip_knee:25,clip_ceiling:-1,clip_detail:35,clip_detail_freq:4000,lim_threshold:-12,lim_ceiling:-1,lim_release:40}},
   {name:'Tape Warmth',params:{sat_voicing:'Tape',sat_drive:14,sat_bias:45,sat_mix:100,clip_drive:6,clip_knee:80,clip_ceiling:-4,lim_threshold:-5,lim_ceiling:-1.2,lim_release:200}},
-  {name:'Transient Tamer',params:{sat_voicing:'Xfmr',sat_drive:10,sat_bias:15,sat_mix:70,clip_drive:26,clip_knee:10,clip_ceiling:-1,lim_threshold:-3,lim_ceiling:-1,lim_release:15}},
-  {name:'Brickwall +6',params:{sat_voicing:'Xfmr',sat_drive:18,sat_bias:60,sat_mix:85,clip_drive:30,clip_knee:5,clip_ceiling:-0.5,lim_threshold:-14,lim_ceiling:-1,lim_release:30}},
+  {name:'Transient Tamer',params:{sat_voicing:'Xfmr',sat_drive:10,sat_bias:15,sat_mix:70,clip_drive:26,clip_knee:10,clip_ceiling:-1,clip_detail:55,clip_detail_freq:3500,lim_threshold:-3,lim_ceiling:-1,lim_release:15}},
+  {name:'Brickwall +6',params:{sat_voicing:'Xfmr',sat_drive:18,sat_bias:60,sat_mix:85,clip_drive:30,clip_knee:5,clip_ceiling:-0.5,clip_detail:45,clip_detail_freq:2800,lim_threshold:-14,lim_ceiling:-1,lim_release:30}},
 ];
 let presetIdx=0;
-function setSliderScaled(st,val){ const pr=st.properties; if(!pr) return; const n=(val-pr.start)/((pr.end-pr.start)||1); st.setNormalisedValue(Math.max(0,Math.min(1,n))); }
+// Scaled -> normalised must mirror JUCE's NormalisableRange: normalised = pow(proportion, skew).
+// skew defaults to 1 (linear) so every non-skewed param is unaffected; skewed params (e.g.
+// clip_detail_freq) land at the correct knob position on preset/Init recall.
+function setSliderScaled(st,val){ const pr=st.properties; if(!pr) return;
+  const prop=Math.max(0,Math.min(1,(val-pr.start)/((pr.end-pr.start)||1)));
+  st.setNormalisedValue(Math.pow(prop, pr.skew??1)); }
 function setComboLabel(st,label){ const ch=(st.properties&&st.properties.choices)||[]; const i=ch.indexOf(label); if(i>=0) st.setChoiceIndex(i); }
 function applyPreset(i){
   presetIdx=(i+PRESETS.length)%PRESETS.length;
