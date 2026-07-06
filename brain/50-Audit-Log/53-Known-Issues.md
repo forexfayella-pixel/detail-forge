@@ -3,12 +3,18 @@ title: Known Issues
 type: log
 tags: [audit]
 status: living
-updated: 2026-07-03
+updated: 2026-07-06
 ---
 
 # Known Issues
 
 Bugs, risks, open questions, tech debt. These are **anticipated** risks from research (pre-code) — confirm/close as we build.
+
+## Detail-preserving clipper (2026-07-06)
+- **[GOTCHA — do not "fix"] The Faust clip engine MUST stay init()'d at the BASE rate; compensate `DetailFreq` by `/factor` instead of re-initing at the oversampled rate.** Generated `ClipEngine.h` clamps the filter-design rate: `fConst0 = π / min(192000, max(1, SR))` (line ~143). The engine is fed oversampled blocks but init'd at base rate, so `fConst0` uses the (unclamped) base rate and our `DetailFreq/factor` makes the detail cutoff land exactly at `fc` for the true rate — **verified bit-exact 2×–16×** (`os_comp_check`, equivalence of `init@base·f, fc` vs `init@base, fc/f` when unclamped). If anyone re-inits the engine at the oversampled rate "to be tidy," 8×/16× from a 48 kHz base = 384/768 kHz **exceeds the 192 kHz clamp** → the detail band silently mistunes (measured 13–25 % output divergence at 8×/16×). Same caution applies to **any future fs-dependent Faust DSP** run oversampled. → [[52-Decision-Log|2026-07-06 DetailFreq pre-divide]], [[21-Clip-Engine]].
+- **[EDGE, LOW] Host base sample rate > 192 kHz would clamp even the base-rate init**, mistuning the detail cutoff. Exotic (base > 192 k is rare) and unrelated to our oversampling; note only. If ever supported, scale `DetailFreq` by `SR/min(192000,SR)` too.
+- **[RESOLVED] Detail-path verification is now a committed regression.** `engine_runner` gained `--detail`/`--detail-freq` (default off) and `m0_gate.py` asserts: Detail=0 == plain clip bit-exact, and an **impulse** transient gains **>1.3× HF** above the split with Detail=1 (measured 17.15×). Runs in the ctest `m0_gate`. NOTE the probe is an **impulse (transient)**, not a sine — see below.
+- **[BEHAVIOR, by-design] Detail restores TRANSIENT HF, not tonal harmonics.** On a steady sine the fold-back collapses to `out = x − LP(residual)`, which *removes* upper clip harmonics (cleaner, duller), so a sine HF-energy test reads <1× — that fooled the first gate attempt. The technique targets transient/broadband material (drums, mixes); the amount knob is the user's control. Not a bug; the gate uses an impulse accordingly.
 
 ## Visualization accuracy (implemented 2026-07-04; spec `docs/2026-07-03-detail-viz.md`)
 - **[RESOLVED] Pre/post overlay latency smear.** Pre-tap delay line delays the captured dry by L=`lastReportedLatency` so `inRing`/`outRing` align at one index; impulse-verified across L=0..255 and block boundaries. `PluginProcessor.cpp` processBlock.

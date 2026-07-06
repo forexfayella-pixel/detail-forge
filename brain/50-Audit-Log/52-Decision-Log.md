@@ -3,13 +3,16 @@ title: Decision Log
 type: log
 tags: [audit]
 status: living
-updated: 2026-07-02
+updated: 2026-07-06
 ---
 
 # Decision Log
 
 Decisions + rationale. Newest at top.
 
+- **2026-07-06 — Detail extraction uses COMPLEMENTARY subtraction (`residual − lowpass`), not a minimum-phase highpass.** The whole point is to fold the clipped-off transient's HF back *time-aligned* with the clipped body; a min-phase Butterworth HP phase-shifts the detail → transient smear. With `hf = residual − LP(residual)`, at frequencies above the cutoff `LP≈0` so `hf≈residual` — same phase/timing as the body's residual — while the (attenuated) low region is the only part filtered. 2nd-order LP as the body/air balance; cheap, runs oversampled. Linear-phase FIR is a future option if a steeper, latency-tolerant split is wanted.
+- **2026-07-06 — DetailFreq is pre-divided by the OS factor in the JUCE layer, not re-init'd per OS change.** The Faust engine is `init()`'d once at the base rate but fed oversampled blocks. The memoryless clipper didn't care; the new detail *filter* does. Rather than re-init engines on the audio thread when the OS choice changes (RT-unsafe), pass `DetailFreq/(1<<osIndex)` to the zone each block — the bilinear prewarp `tan(π·fc/fs)` makes that scaling exact, not approximate. Keeps the fix off the hot path and re-init-free.
+- **2026-07-06 — Detail default = 0 (off).** Preserves the existing clipper's sound/presets bit-exact on load (verified). Detail is opt-in "sparkle," consistent with the gentle-by-default philosophy ([[52-Decision-Log|2026-07-03 drive 12→2 dB]]). This is lever (5) parallel/mix from the 2026-07-03 "detail preservation" decision, now built as an in-band HF re-inject.
 - **2026-07-03 — Oversampling via JUCE `dsp::Oversampling` (polyphase-IIR, integer latency), in the JUCE layer around the Faust clip.** 5 instances (orders 1–4 for 2×–16×; 1× bypasses). Polyphase IIR = low latency (good for stacking with the M2 limiter); integer latency so host reporting is exact. Latency reported on OS-factor change (rare; `setLatencySamples` from processBlock is acceptable for a rare event — revisit with AsyncUpdater if it causes issues). ADAA runs at the oversampled rate → ADAA + oversampling combine (research's detail-preservation core). Verified alias reduction offline via [[62-Testing|engine_runner]].
 - **2026-07-03 — ADAA-order toggle implemented in Faust with `select3`.** Off = naive (clamp / raw `aa.softclipEnv.softclip`), 1st = `aa.hardclip`/`softclipQuadratic1`, 2nd = `aa.hardclip2`/`softclipQuadratic2`. All branches computed (cheap for a clip). Verified: Off/1st/2nd worst-alias = −16.3/−20.9/−24.6 dB; Off == naive confirms order 0 has no AA.
 - **2026-07-03 — Clip default drive 12→2 dB.** 12 dB squared the signal on load (user feedback). 2 dB just taps the tallest peaks = detail-preserving out of the box. Loud presets still exist for aggressive use.
