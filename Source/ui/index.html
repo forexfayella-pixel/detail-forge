@@ -216,7 +216,7 @@
     <div class="aboutBrand">YANTRA <b>AUDIO</b></div>
     <div class="aboutSub">Creative Audio Plugins</div>
     <div class="aboutDiv"></div>
-    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.14</span></div>
+    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.15</span></div>
     <div class="aboutDesc">Detail-preserving <b style="color:#F2953A;font-weight:600;">saturator → clipper → limiter</b>.<br>High-pass foldback clipping with a true-peak lookahead limiter.</div>
     <div class="aboutBtns">
       <button data-act="github">GitHub&nbsp;↗</button>
@@ -228,6 +228,18 @@
 
 <script type="module">
 import * as Juce from "./juce/index.js";
+
+// Keep the DAW's transport keys working. Two problems this solves: (1) after clicking a plugin
+// control it keeps keyboard focus, so Space/Enter re-toggles it; (2) that also eats the host's
+// play/stop. Fix: blur any focused control right after a click, and if Space/Enter arrives while a
+// control IS focused, swallow it + blur (so it never toggles) — otherwise let it pass to the host.
+document.addEventListener("pointerup", function(){ const a=document.activeElement; if(a && a!==document.body && a.blur) a.blur(); }, true);
+window.addEventListener("keydown", function(e){
+  if(e.code==="Space" || e.code==="Enter" || e.code==="NumpadEnter"){
+    const a=document.activeElement;
+    if(a && a!==document.body){ e.preventDefault(); if(a.blur) a.blur(); }
+  }
+}, true);
 
 // ---------- formatters ----------
 const fmt = {

@@ -67,8 +67,9 @@ public:
     // ADAA2 hard clip introduces exactly 1 sample of group delay (measured).
     static constexpr int kLatencySamples = 1;
 
-    // Persisted editor window size (saved in plugin state; restored on reopen).
-    int editorW = 1040, editorH = 686;
+    // Persisted editor window size (saved in plugin state; restored on reopen). Width drives it;
+    // height follows the locked aspect ratio (~1.328).
+    int editorW = 1080, editorH = 813;
 
     // Probe the ACTUAL saturator+clip transfer for a ramp x in [-1,1], filling ys with N
     // output values. Message-thread only (uses a dedicated offline engine, never the audio

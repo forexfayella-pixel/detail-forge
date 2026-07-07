@@ -13,6 +13,7 @@ namespace
     };
     const juce::StringArray kComboIds { "sat_voicing", "oversampling", "adaa_order" };
     const juce::StringArray kToggleIds { "sat_on", "clip_on", "lim_on" };   // section enables
+    constexpr double kAspect = 964.0 / 726.0;   // ~1.328 — the rack's natural width/height (window is locked to it)
 
     juce::WebBrowserComponent::Resource makeResource (const char* data, int size, juce::String mime)
     {
@@ -95,11 +96,17 @@ DetailForgeEditor::DetailForgeEditor (DetailForgeProcessor& p)
 
     webView->goToURL (juce::WebBrowserComponent::getResourceProviderRoot());
 
-    // Free resize; the HTML scales its fixed-size layout to fill the window (zoom).
+    // Resizable but LOCKED to the plugin's aspect ratio (no arbitrary rectangles); the HTML scales
+    // its fixed layout to fill the window. Width is persisted; height follows the aspect.
     setResizable (true, true);
-    setResizeLimits (760, 500, 2400, 1560);
-    setSize (juce::jlimit (760, 2400, processorRef.editorW),
-             juce::jlimit (500, 1560, processorRef.editorH));   // restore the saved size
+    if (auto* c = getConstrainer())
+    {
+        c->setFixedAspectRatio (kAspect);
+        c->setSizeLimits (820, (int) std::round (820.0  / kAspect),
+                          1900, (int) std::round (1900.0 / kAspect));
+    }
+    const int w = juce::jlimit (820, 1900, processorRef.editorW > 0 ? processorRef.editorW : 1080);
+    setSize (w, (int) std::round (w / kAspect));
     startTimerHz (30);
 }
 
@@ -109,8 +116,12 @@ void DetailForgeEditor::resized()
 {
     if (webView != nullptr)
         webView->setBounds (getLocalBounds());
-    processorRef.editorW = getWidth();    // remember the size for reopen / state save
-    processorRef.editorH = getHeight();
+    // Remember the width for reopen / state (guard against host teardown resizing to a tiny size).
+    if (getWidth() >= 820)
+    {
+        processorRef.editorW = getWidth();
+        processorRef.editorH = getHeight();
+    }
 }
 
 void DetailForgeEditor::timerCallback()
