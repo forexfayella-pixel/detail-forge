@@ -120,10 +120,19 @@ target_include_directories(engine_runner PRIVATE
     "${FAUST_ARCH_DIR}")
 set_target_properties(engine_runner PROPERTIES CXX_STANDARD 20)
 
-# ---- Automated M0 fidelity gate (ctest) ----
+# ---- JUCE-free M2 limiter gate (drives the real TruePeakLimiter offline) ----
+add_executable(limiter_runner Tests/limiter_runner.cpp)
+target_include_directories(limiter_runner PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
+set_target_properties(limiter_runner PROPERTIES CXX_STANDARD 20)
+
+# ---- Automated fidelity gates (ctest) ----
 enable_testing()
 add_test(NAME m0_gate
          COMMAND ${CMAKE_COMMAND} -E env PYTHON=python
                  python "${CMAKE_CURRENT_SOURCE_DIR}/scripts/m0_gate.py"
                  --runner $<TARGET_FILE:engine_runner>)
 set_tests_properties(m0_gate PROPERTIES LABELS "measurement")
+
+# M2: the limiter's true-peak ceiling must hold on an inter-sample signal (self-contained, no args).
+add_test(NAME m2_gate COMMAND limiter_runner)
+set_tests_properties(m2_gate PROPERTIES LABELS "measurement")

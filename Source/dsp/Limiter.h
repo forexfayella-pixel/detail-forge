@@ -50,7 +50,10 @@ public:
         relCoef = 1.0f - std::exp (-1.0f / std::max (1.0f, (relMs / 1000.0f) * (float) sr));
         int look = (int) std::lround ((double) juceClamp (lookMs, 0.0f, kMaxLookaheadMs) / 1000.0 * sr);
         int newL = std::min (maxL, look + detDelay + 1);
-        if (force || newL != L) { L = std::max (1, newL); if (! force) dqSize = 0; }  // window change: drop stale minima
+        // Window change: just update L. pushMin's own front-eviction adapts to the new window on the
+        // next sample — do NOT zero the deque (that would momentarily under-populate the min-window
+        // and let a peak slip past the ceiling). prepare()'s reset() handles the clean-start case.
+        if (force || newL != L) L = std::max (1, newL);
     }
 
     void reset()
@@ -172,8 +175,10 @@ private:
     std::vector<std::vector<float>> delay;   // [nch][ring] lookahead delay
     int detPos = 0, wpos = 0;
 
-    std::vector<float> dqV; std::vector<int> dqI;   // monotonic deque storage
-    int dqHead = 0, dqSize = 0, nowIdx = 0;
+    std::vector<float> dqV; std::vector<long long> dqI;   // monotonic deque storage
+    // nowIdx is 64-bit: at 48 kHz a 32-bit counter overflowed (signed UB) after ~12 h of continuous
+    // playback, corrupting the sliding-min window; 64-bit pushes that past any realistic session.
+    int dqHead = 0, dqSize = 0; long long nowIdx = 0;
 
     float gState = 1.0f, grDb = 0.0f;
 };
