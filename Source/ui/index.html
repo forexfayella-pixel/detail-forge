@@ -119,9 +119,9 @@
     <!-- LEFT: channel strip -->
     <div class="strip">
       <div class="brand">
-        <img id="brandLogo" class="brandlogo" alt="Yantra Audio — About" title="About Detail Forge" />
+        <canvas id="brandLogo" class="brandlogo" title="About Detail Forge"></canvas>
         <div class="name">DETAIL <b>FORGE</b></div>
-        <span class="ver"><b>YANTRA&nbsp;AUDIO</b> · v0.12</span>
+        <span class="ver"><b>YANTRA&nbsp;AUDIO</b> · v0.13</span>
       </div>
 
       <!-- global -->
@@ -213,11 +213,11 @@
 <div id="about" class="aboutOverlay">
   <div class="aboutCard">
     <button id="aboutClose" class="aboutClose" title="Close">×</button>
-    <img id="aboutLogo" class="aboutLogo" alt="Yantra Audio" />
+    <canvas id="aboutLogo" class="aboutLogo"></canvas>
     <div class="aboutBrand">YANTRA <b>AUDIO</b></div>
     <div class="aboutSub">Creative Audio Plugins</div>
     <div class="aboutDiv"></div>
-    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.12</span></div>
+    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.13</span></div>
     <div class="aboutDesc">Detail-preserving <b style="color:#F2953A;font-weight:600;">saturator → clipper → limiter</b>.<br>High-pass foldback clipping with a true-peak lookahead limiter.</div>
     <div class="aboutBtns">
       <button data-act="github">GitHub&nbsp;↗</button>
@@ -678,10 +678,47 @@ function drawFrame(t){ requestAnimationFrame(drawFrame);
 requestAnimationFrame(drawFrame);
 
 // ---------- Yantra Audio branding + About modal ----------
-const YANTRA_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiIgd2lkdGg9Ijk2MCIgaGVpZ2h0PSI5NjAiPgogIDxkZWZzPgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iNTAlIiBjeT0iNTAlIiByPSI1MCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRjRGMkVFIiBzdG9wLW9wYWNpdHk9IjAuODUiPjwvc3RvcD4KICAgICAgPHN0b3Agb2Zmc2V0PSIzMCUiIHN0b3AtY29sb3I9IiNGNEYyRUUiIHN0b3Atb3BhY2l0eT0iMC4zMCI+PC9zdG9wPgogICAgICA8c3RvcCBvZmZzZXQ9IjY1JSIgc3RvcC1jb2xvcj0iI0Y0RjJFRSIgc3RvcC1vcGFjaXR5PSIwLjA4Ij48L3N0b3A+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI0Y0RjJFRSIgc3RvcC1vcGFjaXR5PSIwIj48L3N0b3A+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0aWxlIiB4MT0iMCIgeTE9IjAiIHgyPSIwLjYiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzIwMjUyOSI+PC9zdG9wPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEzMTYxOSI+PC9zdG9wPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTIiIGZpbGw9InVybCgjdGlsZSkiPjwvcmVjdD4KICA8Zz48Y2lyY2xlIGN4PSI1NC41MiIgY3k9IjQwLjYwIiByPSIxLjciIGZpbGw9IiM0RkQxQzUiIG9wYWNpdHk9IjAuNDYiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjU0LjUyIiBjeT0iODUuNjMiIHI9IjEuNyIgZmlsbD0iI0UwQTg1QiIgb3BhY2l0eT0iMC42MSI+PC9jaXJjbGU+PGxpbmUgeDE9IjU0LjUyIiB5MT0iODUuNjMiIHgyPSIxMy4yNSIgeTI9IjI4LjMyIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC40NyI+PC9saW5lPjxsaW5lIHgxPSIxMy4yNSIgeTE9IjczLjM1IiB4Mj0iNTQuNTIiIHkyPSI0MC42MCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNDciPjwvbGluZT48Y2lyY2xlIGN4PSIxMy4yNSIgY3k9IjI4LjMyIiByPSIxLjciIGZpbGw9IiNFMEE4NUIiIG9wYWNpdHk9IjAuNjMiPjwvY2lyY2xlPjxsaW5lIHgxPSI4Mi43NSIgeTE9IjIyLjY1IiB4Mj0iNTQuNTIiIHkyPSI4NS42MyIgc3Ryb2tlPSIjRTBBODVCIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNTEiPjwvbGluZT48bGluZSB4MT0iODIuNzUiIHkxPSI2Ny42OCIgeDI9IjU0LjUyIiB5Mj0iNDAuNjAiIHN0cm9rZT0iIzRGRDFDNSIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjUxIj48L2xpbmU+PGxpbmUgeDE9IjgyLjc1IiB5MT0iMjIuNjUiIHgyPSIxMy4yNSIgeTI9IjI4LjMyIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC41MyI+PC9saW5lPjxsaW5lIHgxPSI0MS40OCIgeTE9IjEwLjM3IiB4Mj0iNTQuNTIiIHkyPSI0MC42MCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNTMiPjwvbGluZT48Y2lyY2xlIGN4PSI4Mi43NSIgY3k9IjIyLjY1IiByPSIxLjciIGZpbGw9IiNFMEE4NUIiIG9wYWNpdHk9IjAuNzIiPjwvY2lyY2xlPjwvZz4KICA8Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSIyMiIgZmlsbD0idXJsKCNnbG93KSI+PC9jaXJjbGU+CiAgPHRleHQgeD0iNDgiIHk9IjQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1zaXplPSIxNyIgZm9udC1mYW1pbHk9IiYjMzk7Tm90byBTYW5zIERldmFuYWdhcmkmIzM5OywmIzM5O05pcm1hbGEgVUkmIzM5OywmIzM5O0RldmFuYWdhcmkgTVQmIzM5OyxzZXJpZiIgZm9udC13ZWlnaHQ9IjUwMCIgZmlsbD0iI0Y0RjJFRSI+4KWQPC90ZXh0PgogIDxnPjxjaXJjbGUgY3g9IjEzLjI1IiBjeT0iNzMuMzUiIHI9IjEuNyIgZmlsbD0iIzRGRDFDNSIgb3BhY2l0eT0iMC43OCI+PC9jaXJjbGU+PGxpbmUgeDE9IjU0LjUyIiB5MT0iODUuNjMiIHgyPSI0MS40OCIgeTI9IjU1LjQwIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42NyI+PC9saW5lPjxsaW5lIHgxPSIxMy4yNSIgeTE9IjczLjM1IiB4Mj0iODIuNzUiIHkyPSI2Ny42OCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNjciPjwvbGluZT48bGluZSB4MT0iMTMuMjUiIHkxPSIyOC4zMiIgeDI9IjQxLjQ4IiB5Mj0iNTUuNDAiIHN0cm9rZT0iI0UwQTg1QiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjY5Ij48L2xpbmU+PGxpbmUgeDE9IjEzLjI1IiB5MT0iNzMuMzUiIHgyPSI0MS40OCIgeTI9IjEwLjM3IiBzdHJva2U9IiM0RkQxQzUiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42OSI+PC9saW5lPjxjaXJjbGUgY3g9IjgyLjc1IiBjeT0iNjcuNjgiIHI9IjEuNyIgZmlsbD0iIzRGRDFDNSIgb3BhY2l0eT0iMC44NyI+PC9jaXJjbGU+PGxpbmUgeDE9IjgyLjc1IiB5MT0iMjIuNjUiIHgyPSI0MS40OCIgeTI9IjU1LjQwIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC43MyI+PC9saW5lPjxsaW5lIHgxPSI0MS40OCIgeTE9IjEwLjM3IiB4Mj0iODIuNzUiIHkyPSI2Ny42OCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNzMiPjwvbGluZT48Y2lyY2xlIGN4PSI0MS40OCIgY3k9IjEwLjM3IiByPSIxLjciIGZpbGw9IiM0RkQxQzUiIG9wYWNpdHk9IjAuODkiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjQxLjQ4IiBjeT0iNTUuNDAiIHI9IjEuNyIgZmlsbD0iI0UwQTg1QiIgb3BhY2l0eT0iMS4wMCI+PC9jaXJjbGU+PC9nPgo8L3N2Zz4=";
 {
   const bl=document.getElementById("brandLogo"), al=document.getElementById("aboutLogo");
-  if(bl) bl.src=YANTRA_LOGO; if(al) al.src=YANTRA_LOGO;
+  // Living Merkabah logo — native 3D star-tetrahedron spin (Yantra brand geometry + colors).
+  const _VA=[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]], _VB=[[-1,-1,-1],[-1,1,1],[1,-1,1],[1,1,-1]];
+  const _EE=[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+  function _rot(p,ay,ax){ const x=p[0],y=p[1],z=p[2];
+    const ca=Math.cos(ay),sa=Math.sin(ay), X=x*ca+z*sa, Z=-x*sa+z*ca;
+    const cb=Math.cos(ax),sb=Math.sin(ax); return [X, y*cb-Z*sb, y*sb+Z*cb]; }
+  function _rrect(x,y,w,hh,r,c){ c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+hh,r);c.arcTo(x+w,y+hh,x,y+hh,r);c.arcTo(x,y+hh,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath(); }
+  function drawMerkabah(cv,tms){
+    const dpr=Math.min(2,window.devicePixelRatio||1);
+    const S=cv.clientWidth||cv.offsetWidth||26, px=Math.max(2,Math.round(S*dpr));
+    if(cv.width!==px){cv.width=px;cv.height=px;}
+    const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,S,S);
+    const cx=S/2, cy=S/2, R=S*0.25, ay=tms*0.0007, ax=0.6+Math.sin(tms*0.00028)*0.12;
+    const tg=ctx.createLinearGradient(0,0,S*0.6,S); tg.addColorStop(0,"#202529"); tg.addColorStop(1,"#131619");
+    ctx.fillStyle=tg; _rrect(0,0,S,S,S*0.13,ctx); ctx.fill();
+    const gl=ctx.createRadialGradient(cx,cy,0,cx,cy,R*0.9);
+    gl.addColorStop(0,"rgba(244,242,238,0.55)"); gl.addColorStop(0.4,"rgba(244,242,238,0.13)"); gl.addColorStop(1,"rgba(244,242,238,0)");
+    ctx.fillStyle=gl; ctx.beginPath();ctx.arc(cx,cy,R*0.9,0,6.2832);ctx.fill();
+    const items=[];
+    [[_VA,[224,168,91]],[_VB,[79,209,197]]].forEach(function(tc){ const V=tc[0],col=tc[1], P=V.map(function(p){return _rot(p,ay,ax);});
+      _EE.forEach(function(e){ items.push({z:(P[e[0]][2]+P[e[1]][2])/2,a:P[e[0]],b:P[e[1]],col:col}); });
+      P.forEach(function(p){ items.push({z:p[2],dot:1,p:p,col:col}); }); });
+    function draw(it){ const near=Math.max(0,Math.min(1,(it.z+1.8)/3.6)), op=(0.3+0.65*near).toFixed(3), c=it.col;
+      if(it.dot){ ctx.fillStyle="rgba("+c[0]+","+c[1]+","+c[2]+","+op+")"; ctx.beginPath();ctx.arc(cx+it.p[0]*R,cy-it.p[1]*R,Math.max(0.8,S*0.02),0,6.2832);ctx.fill(); }
+      else { ctx.strokeStyle="rgba("+c[0]+","+c[1]+","+c[2]+","+op+")"; ctx.lineWidth=Math.max(1,S*0.025); ctx.lineCap="round";
+        ctx.beginPath();ctx.moveTo(cx+it.a[0]*R,cy-it.a[1]*R);ctx.lineTo(cx+it.b[0]*R,cy-it.b[1]*R);ctx.stroke(); } }
+    items.filter(function(it){return it.z<0;}).forEach(draw);
+    ctx.fillStyle="#F4F2EE"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.font="500 "+Math.round(S*0.32)+"px 'Nirmala UI','Noto Sans Devanagari','Devanagari MT',serif";
+    ctx.fillText("ॐ",cx,cy+S*0.015);
+    items.filter(function(it){return it.z>=0;}).forEach(draw);
+  }
+  let _mlast=0;
+  function _animLogos(t){ requestAnimationFrame(_animLogos);
+    if(t-_mlast<32) return; _mlast=t;
+    if(bl) drawMerkabah(bl,t);
+    if(ov && ov.classList.contains("on") && al) drawMerkabah(al,t);
+  }
+  requestAnimationFrame(_animLogos);
   const ov=document.getElementById("about"), cl=document.getElementById("aboutClose");
   const openA=()=>ov&&ov.classList.add("on"), closeA=()=>ov&&ov.classList.remove("on");
   if(bl) bl.addEventListener("click",openA);
