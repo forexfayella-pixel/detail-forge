@@ -121,7 +121,6 @@
       <div class="brand">
         <canvas id="brandLogo" class="brandlogo" title="About Detail Forge"></canvas>
         <div class="name">DETAIL <b>FORGE</b></div>
-        <span class="ver"><b>YANTRA&nbsp;AUDIO</b> · v0.13</span>
       </div>
 
       <!-- global -->
@@ -140,7 +139,7 @@
 
       <!-- saturator -->
       <div class="panel" data-section="sat_on">
-        <div class="phead"><span class="ptitle">SATURATOR <button class="pwr" data-pwr="sat_on" title="Enable / disable">LIVE</button> <button class="dsend" data-dsrc="clip" title="Show this stage in the Δ view">→Δ</button></span><span class="ptag">HARMONIC FRONT-END · 01</span></div>
+        <div class="phead"><span class="ptitle">SATURATOR <button class="pwr" data-pwr="sat_on" title="Enable / disable">LIVE</button></span><span class="ptag">HARMONIC FRONT-END · 01</span></div>
         <div class="row">
           <div style="flex:1;"><div class="sel" data-selector="sat_voicing" data-label="VOICING" data-accent="#F2953A"></div></div>
           <div class="knob" data-knob="sat_drive" data-label="DRIVE" data-accent="#F2953A" data-size="50" data-fmt="db" data-def="6"></div>
@@ -185,7 +184,7 @@
         <canvas id="scope"></canvas>
         <div class="tag" style="top:8px;left:10px;">OSCILLOSCOPE — LIVE · SYNCED</div>
         <div class="tag" id="deltaToggle" style="top:8px;right:10px;left:auto;color:#3DE1A0;cursor:pointer;" title="Toggle the Δ view on/off (scroll the scope to change Δ zoom)">Δ OFF</div>
-        <div class="tag" style="bottom:8px;left:10px;"><span class="leg" data-trace="in" style="color:#9AD3DE;">━ IN</span>&nbsp;&nbsp;<span class="leg" data-trace="out" style="color:#F2953A;">━ OUT</span>&nbsp;&nbsp;<span class="leg off" data-trace="delta" style="color:#3DE1A0;">━ <span id="deltaGainLbl">Δ×3</span></span></div>
+        <div class="tag" style="bottom:8px;left:10px;"><span class="leg" data-trace="in" style="color:#9AD3DE;">━ IN</span>&nbsp;&nbsp;<span class="leg" data-trace="out" style="color:#F2953A;">━ OUT</span>&nbsp;&nbsp;<span class="leg off" data-trace="delta" style="color:#3DE1A0;">━ <span id="deltaGainLbl">Δ×1</span></span></div>
         <div class="tag" id="ampToggle" style="bottom:8px;right:10px;left:auto;cursor:pointer;color:#8FD9E6;" title="Toggle linear / dB amplitude axis">LIN</div>
       </div>
       <div class="lowrow">
@@ -217,7 +216,7 @@
     <div class="aboutBrand">YANTRA <b>AUDIO</b></div>
     <div class="aboutSub">Creative Audio Plugins</div>
     <div class="aboutDiv"></div>
-    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.13</span></div>
+    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.14</span></div>
     <div class="aboutDesc">Detail-preserving <b style="color:#F2953A;font-weight:600;">saturator → clipper → limiter</b>.<br>High-pass foldback clipping with a true-peak lookahead limiter.</div>
     <div class="aboutBtns">
       <button data-act="github">GitHub&nbsp;↗</button>
@@ -480,7 +479,7 @@ function warp(s){
   if(t) t.addEventListener("click",()=>{ AMP.mode = AMP.mode==='lin'?'db':'lin'; t.textContent = AMP.mode==='lin'?'LIN':'dB'; });
 }
 // Scope config MUST be declared before the control block below (which reads it at load via syncDelta).
-const SCOPE = { showIn:true, showOut:true, delta:false, deltaGain:3, deltaSrc:'clip' };
+const SCOPE = { showIn:true, showOut:true, delta:false, deltaGain:1, deltaSrc:'clip' };
 const DELTA_COL = "#3DE1A0";   // mint (was purple)
 // Δ delta toggle (click) + gain via mouse-wheel over the scope.
 const SPEC = { ceilDb:0, bands:44, range:72 };   // harmonics display: adjustable dB ceiling
@@ -495,7 +494,7 @@ const SPEC = { ceilDb:0, bands:44, range:72 };   // harmonics display: adjustabl
   if(dt) dt.addEventListener("click",()=>{ SCOPE.delta=!SCOPE.delta; syncDelta(); });
   legs.forEach(l=>l.addEventListener("click",()=>{ const t=l.dataset.trace;
     if(t==='in') SCOPE.showIn=!SCOPE.showIn; else if(t==='out') SCOPE.showOut=!SCOPE.showOut; else SCOPE.delta=!SCOPE.delta; syncDelta(); }));
-  sends.forEach(s=>s.addEventListener("click",()=>{ SCOPE.deltaSrc=s.dataset.dsrc; SCOPE.delta=true; syncDelta(); }));
+  sends.forEach(s=>s.addEventListener("click",()=>{ const src=s.dataset.dsrc; if(SCOPE.delta&&SCOPE.deltaSrc===src) SCOPE.delta=false; else { SCOPE.deltaSrc=src; SCOPE.delta=true; } syncDelta(); }));
   const sc=document.getElementById("scope");
   if(sc) sc.addEventListener("wheel",e=>{ e.preventDefault(); SCOPE.deltaGain=clampv(SCOPE.deltaGain+(e.deltaY<0?1:-1),1,32); if(gl)gl.textContent="Δ×"+SCOPE.deltaGain; },{passive:false});
   syncDelta();
@@ -607,13 +606,10 @@ function drawScope(){ const cv=document.getElementById("scope"),c=prep(cv);if(!c
   }
   ctx.restore();
 }
-// Δ trace: LEVEL-MATCHED (a − b·scale)·gain — the SHAPE difference a stage introduced, not the
-// level difference from gain/limiter. Stays small and hugs where the change lives (the fold).
+// Δ trace: the TRUE difference (a − b)·gain — literally what the stage changed. Default gain 1:1
+// (scroll the scope to zoom Δ). For 'clip' it's clipOut − in (the fold); for 'lim' it's out − preLim.
 function drawDelta(ctx,w,Y,a,b,t0,span,gain){
-  let pa=1e-6,pb=1e-6;
-  for(let i=0;i<span;i++){ const va=Math.abs(a[t0+i]),vb=Math.abs(b[t0+i]); if(va>pa)pa=va; if(vb>pb)pb=vb; }
-  const sc=clampv(pa/pb,0.05,20);   // bring b to a's level
-  const d=new Float32Array(span); for(let i=0;i<span;i++) d[i]=(a[t0+i]-b[t0+i]*sc)*gain;
+  const d=new Float32Array(span); for(let i=0;i<span;i++) d[i]=(a[t0+i]-b[t0+i])*gain;
   const rec=reconstruct(d,LANCZOS,0,span),M=rec.length; if(M<1)return;
   ctx.save();ctx.strokeStyle=DELTA_COL;ctx.lineWidth=1.4;ctx.shadowBlur=5;ctx.shadowColor="rgba(61,225,160,0.55)";
   ctx.beginPath(); for(let k=0;k<M;k++){ const x=k/M*w,y=Y(rec[k]); k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
