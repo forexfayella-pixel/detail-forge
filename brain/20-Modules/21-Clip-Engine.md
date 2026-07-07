@@ -3,7 +3,7 @@ title: 21 · Clip Engine
 type: module
 tags: [module, dsp, faust]
 status: living
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # Clip Engine
@@ -28,10 +28,12 @@ We compile `.dsp` with the **faust compiler directly** (`-lang cpp -cn`) + **Map
 - **`clip_detail` 0–200 % → Faust `Detail` 0–2** (HF fold-back amount, **default 0 = off**), **`clip_detail_freq` 300 Hz–12 kHz** (log-skew, default 3 kHz) → `DetailFreq`. (2026-07-06)
 
 ## Detail-preserving fold-back (2026-07-06)
-The Au5 "detail-preserving clipper" technique, built in-band. In `clip.dsp`:
+The Au5 "detail-preserving clipper" = high-pass **FOLDBACK**, built in-band. In `clip.dsp`:
 `clipCore(x) = x : /(ceiling) : shaped : *(ceiling)` is the plain clip; then
-`dpClip(x) = clipped + Detail·hf` where `residual = x − clipped` and
+`dpClip(x) = clipped − Detail·hf` where `residual = x − clipped` and
 `hf = residual − lowpass(2, DetailFreq, residual)` (**complementary** HF, phase-coherent — see [[52-Decision-Log]]).
+**SUBTRACT, not add** (2026-07-07 correction): subtracting folds the peak back down (`2·clip − x`), preserving the
+waveform's shape; adding made it overshoot → the limiter re-clipped it flat + distorted. D-FREQ 20 Hz–12 kHz (low = fold more).
 `Detail=0` ⇒ `dpClip == clipCore` bit-exact. Runs inside the oversampled region (HF is anti-aliased);
 the JUCE layer pre-divides `DetailFreq` by the OS factor (`1<<osIndex`) because the engine is `init()`'d
 at base rate. Verified: Detail=1 restores ~47× HF energy above the split while LF body RMS moves +2.8%.
