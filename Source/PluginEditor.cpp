@@ -84,7 +84,8 @@ DetailForgeEditor::DetailForgeEditor (DetailForgeProcessor& p)
     // Free resize; the HTML scales its fixed-size layout to fill the window (zoom).
     setResizable (true, true);
     setResizeLimits (760, 500, 2400, 1560);
-    setSize (1040, 686);   // ~the design's natural aspect
+    setSize (juce::jlimit (760, 2400, processorRef.editorW),
+             juce::jlimit (500, 1560, processorRef.editorH));   // restore the saved size
     startTimerHz (30);
 }
 
@@ -94,6 +95,8 @@ void DetailForgeEditor::resized()
 {
     if (webView != nullptr)
         webView->setBounds (getLocalBounds());
+    processorRef.editorW = getWidth();    // remember the size for reopen / state save
+    processorRef.editorH = getHeight();
 }
 
 void DetailForgeEditor::timerCallback()

@@ -557,13 +557,21 @@ void DetailForgeProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     if (auto state = apvts.copyState(); state.isValid())
         if (auto xml = state.createXml())
+        {
+            xml->setAttribute ("editorW", editorW);
+            xml->setAttribute ("editorH", editorH);
             copyXmlToBinary (*xml, destData);
+        }
 }
 
 void DetailForgeProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
+    {
+        editorW = xml->getIntAttribute ("editorW", editorW);
+        editorH = xml->getIntAttribute ("editorH", editorH);
         apvts.replaceState (juce::ValueTree::fromXml (*xml));
+    }
 }
 
 //==============================================================================
