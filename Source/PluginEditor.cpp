@@ -38,7 +38,21 @@ DetailForgeEditor::DetailForgeEditor (DetailForgeProcessor& p)
     // The UI is one HTML/JS codebase; only the native WebView backend differs per OS.
     auto options = juce::WebBrowserComponent::Options{}
         .withNativeIntegrationEnabled()
-        .withResourceProvider ([this] (const auto& url) { return getResource (url); });
+        .withResourceProvider ([this] (const auto& url) { return getResource (url); })
+        // About-modal actions: open a URL in the default browser / reveal the plugin in the OS file browser.
+        .withNativeFunction (juce::Identifier ("openUrl"),
+            [] (const juce::Array<juce::var>& args, juce::WebBrowserComponent::NativeFunctionCompletion complete)
+            {
+                if (! args.isEmpty())
+                    juce::URL (args[0].toString()).launchInDefaultBrowser();
+                complete (juce::var());
+            })
+        .withNativeFunction (juce::Identifier ("revealPlugin"),
+            [] (const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion complete)
+            {
+                juce::File::getSpecialLocation (juce::File::currentApplicationFile).revealToUser();
+                complete (juce::var());
+            });
 
    #if JUCE_WINDOWS
     // Windows: the WebView2 (Chromium) backend + a persistent per-plugin user-data folder.

@@ -24,6 +24,27 @@
   .brand .name b{color:#F2953A;font-weight:700;}
   .brand .ver{font:600 11px/1 ui-monospace,monospace;letter-spacing:1.5px;color:#9BA4AE;align-self:flex-end;margin-bottom:3px;}
   .brand .ver b{color:#F2953A;font-weight:700;}
+  .brandlogo{width:26px;height:26px;border-radius:6px;cursor:pointer;transition:transform .15s,filter .15s;filter:drop-shadow(0 0 6px rgba(79,209,197,0.3));}
+  .brandlogo:hover{transform:scale(1.08) rotate(4deg);filter:drop-shadow(0 0 11px rgba(224,168,91,0.55));}
+  /* About modal (Yantra Audio) */
+  .aboutOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(8,9,11,0.8);backdrop-filter:blur(3px);z-index:100;}
+  .aboutOverlay.on{display:flex;}
+  .aboutCard{width:384px;max-width:90%;padding:26px 28px;border-radius:16px;text-align:center;position:relative;
+    background:linear-gradient(180deg,#202529,#131619);border:1px solid #2E353C;box-shadow:0 30px 70px -20px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.05);}
+  .aboutClose{position:absolute;top:9px;right:13px;background:none;border:none;color:#6B747D;font-size:22px;cursor:pointer;line-height:1;}
+  .aboutClose:hover{color:#F4F2EE;}
+  .aboutLogo{width:96px;height:96px;border-radius:14px;margin-bottom:12px;filter:drop-shadow(0 0 18px rgba(79,209,197,0.28));}
+  .aboutBrand{font:600 20px/1 ui-sans-serif,system-ui;letter-spacing:2px;color:#F4F2EE;}
+  .aboutBrand b{color:#E0A85B;font-weight:600;}
+  .aboutSub{font:400 11px/1 ui-monospace,monospace;letter-spacing:4px;color:#4FD1C5;margin-top:7px;text-transform:uppercase;}
+  .aboutDiv{height:1px;background:linear-gradient(90deg,transparent,#2E353C,transparent);margin:18px 0;}
+  .aboutProduct{font:700 15px/1 ui-sans-serif,system-ui;letter-spacing:1px;color:#EAF0F4;}
+  .aboutVer{color:#E0A85B;margin-left:6px;font-weight:600;}
+  .aboutDesc{font:400 11px/1.55 ui-sans-serif,system-ui;color:#9BA4AE;margin-top:9px;}
+  .aboutBtns{display:flex;gap:10px;justify-content:center;margin-top:18px;}
+  .aboutBtns button{flex:1;padding:9px 12px;border-radius:8px;border:1px solid #33383F;background:#1B1F24;color:#CBD3DA;font:600 11px/1 ui-sans-serif,system-ui;cursor:pointer;transition:all .12s;}
+  .aboutBtns button:hover{border-color:#4FD1C5;color:#F4F2EE;background:#232a30;}
+  .aboutFoot{font:400 9px/1.4 ui-monospace,monospace;color:#5A626B;margin-top:16px;letter-spacing:.4px;}
   .panel{display:flex;flex-direction:column;gap:8px;padding:10px 11px;border:1px solid #262A30;border-radius:10px;
          background:linear-gradient(180deg,#1A1D22,#141619);}
   .panel.global{flex-direction:row;align-items:center;gap:8px;padding:9px 11px;background:linear-gradient(180deg,#191C21,#131519);}
@@ -98,9 +119,9 @@
     <!-- LEFT: channel strip -->
     <div class="strip">
       <div class="brand">
-        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L20 12 L12 22 L4 12 Z" fill="none" stroke="#F2953A" stroke-width="1.6"></path><path d="M12 7 L16.5 12 L12 17 L7.5 12 Z" fill="#F2953A"></path></svg>
+        <img id="brandLogo" class="brandlogo" alt="Yantra Audio — About" title="About Detail Forge" />
         <div class="name">DETAIL <b>FORGE</b></div>
-        <span class="ver"><b>FAYELLA</b> · v0.11</span>
+        <span class="ver"><b>YANTRA&nbsp;AUDIO</b> · v0.12</span>
       </div>
 
       <!-- global -->
@@ -185,6 +206,24 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- About / Yantra Audio -->
+<div id="about" class="aboutOverlay">
+  <div class="aboutCard">
+    <button id="aboutClose" class="aboutClose" title="Close">×</button>
+    <img id="aboutLogo" class="aboutLogo" alt="Yantra Audio" />
+    <div class="aboutBrand">YANTRA <b>AUDIO</b></div>
+    <div class="aboutSub">Creative Audio Plugins</div>
+    <div class="aboutDiv"></div>
+    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.12</span></div>
+    <div class="aboutDesc">Detail-preserving <b style="color:#F2953A;font-weight:600;">saturator → clipper → limiter</b>.<br>High-pass foldback clipping with a true-peak lookahead limiter.</div>
+    <div class="aboutBtns">
+      <button data-act="github">GitHub&nbsp;↗</button>
+      <button data-act="reveal">Install Folder</button>
+    </div>
+    <div class="aboutFoot">© 2026 Yantra Audio · Fayella · built with JUCE 8 + Faust</div>
   </div>
 </div>
 
@@ -462,12 +501,12 @@ const SPEC = { ceilDb:0, bands:44, range:72 };   // harmonics display: adjustabl
   syncDelta();
   // Harmonics dB-ceiling: drag the CEIL label (or scroll the spectrum) vertically.
   const sceil=document.getElementById("specCeil"), spec=document.getElementById("spectrum");
-  const setCeil=v=>{ SPEC.ceilDb=clampv(v,-24,24); if(sceil)sceil.textContent="CEIL "+(SPEC.ceilDb>0?"+":"")+SPEC.ceilDb+" dB"; };
+  const setCeil=v=>{ SPEC.ceilDb=clampv(v,-24,120); if(sceil)sceil.textContent="CEIL "+(SPEC.ceilDb>0?"+":"")+SPEC.ceilDb+" dB"; };
   if(sceil){ let dragY=null,base=0;
     sceil.addEventListener("pointerdown",e=>{e.preventDefault();sceil.setPointerCapture(e.pointerId);dragY=e.clientY;base=SPEC.ceilDb;});
-    sceil.addEventListener("pointermove",e=>{ if(dragY!==null) setCeil(Math.round(base+(dragY-e.clientY)*0.25)); });
+    sceil.addEventListener("pointermove",e=>{ if(dragY!==null) setCeil(Math.round(base+(dragY-e.clientY)*0.6)); });
     sceil.addEventListener("pointerup",()=>{dragY=null;}); }
-  if(spec) spec.addEventListener("wheel",e=>{ e.preventDefault(); setCeil(SPEC.ceilDb+(e.deltaY<0?1:-1)); },{passive:false});
+  if(spec) spec.addEventListener("wheel",e=>{ e.preventDefault(); setCeil(SPEC.ceilDb+(e.deltaY<0?3:-3)); },{passive:false});
 }
 // Reconstruct x → 8x oversampled Float32Array (edge-clamped). Optionally over a sub-range
 // [i0,i1) to avoid oversampling the whole ring when only a window is drawn.
@@ -614,9 +653,10 @@ function fft(re,im){ const n=re.length; for(let i=1,j=0;i<n;i++){ let bit=n>>1; 
 function drawSpectrum(){ const cv=document.getElementById("spectrum"),c=prep(cv);if(!c)return;const{ctx,w,h}=c;ctx.clearRect(0,0,w,h);
   const base=h-12,top=15,pad=10;
   ctx.strokeStyle="rgba(255,255,255,0.06)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,base);ctx.lineTo(w-pad,base);ctx.stroke();
-  if(!WAVE)return; const {outW}=WAVE,N=outW.length,re=new Float64Array(N),im=new Float64Array(N);
-  for(let i=0;i<N;i++){const win=0.5-0.5*Math.cos(2*Math.PI*i/(N-1));re[i]=outW[i]*win;im[i]=0;}
-  fft(re,im); const half=N>>1,mags=new Float64Array(half);
+  if(!WAVE)return; const {outW}=WAVE, NF=Math.min(1024,outW.length), off=outW.length-NF;   // 1024-pt FFT (cheaper)
+  const re=new Float64Array(NF),im=new Float64Array(NF);
+  for(let i=0;i<NF;i++){const win=0.5-0.5*Math.cos(2*Math.PI*i/(NF-1));re[i]=outW[off+i]*win;im[i]=0;}
+  fft(re,im); const half=NF>>1,mags=new Float64Array(half);
   for(let i=0;i<half;i++)mags[i]=Math.sqrt(re[i]*re[i]+im[i]*im[i]);
   const bands=SPEC.bands,fmin=2,fmax=half-1;
   for(let b=0;b<bands;b++){ const f0=Math.round(fmin*Math.pow(fmax/fmin,b/bands)),f1=Math.max(f0+1,Math.round(fmin*Math.pow(fmax/fmin,(b+1)/bands)));
@@ -627,10 +667,35 @@ function drawSpectrum(){ const cv=document.getElementById("spectrum"),c=prep(cv)
     ctx.fillStyle="rgba(242,149,58,"+(0.32+0.55*norm)+")";ctx.shadowBlur=3;ctx.shadowColor="rgba(242,149,58,0.4)";
     ctx.fillRect(x,base-bh,bw*0.7,bh);} ctx.shadowBlur=0; }
 
-function drawFrame(){ drawScope(); drawTransfer(); drawSpectrum();
+// Throttle the whole draw loop to ~30 fps (data only updates at 30 Hz) so we don't redraw the
+// heavy scope/FFT at 60–120 Hz on fast displays.
+let _lastDraw=0;
+function drawFrame(t){ requestAnimationFrame(drawFrame);
+  if(t-_lastDraw<31) return; _lastDraw=t;
+  drawScope(); drawTransfer(); drawSpectrum();
   const rp=refParams(); document.getElementById("chainTag").textContent=rp.os+" OVERSAMPLE · ADAA "+rp.adaa;
-  requestAnimationFrame(drawFrame); }
+}
 requestAnimationFrame(drawFrame);
+
+// ---------- Yantra Audio branding + About modal ----------
+const YANTRA_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiIgd2lkdGg9Ijk2MCIgaGVpZ2h0PSI5NjAiPgogIDxkZWZzPgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iNTAlIiBjeT0iNTAlIiByPSI1MCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRjRGMkVFIiBzdG9wLW9wYWNpdHk9IjAuODUiPjwvc3RvcD4KICAgICAgPHN0b3Agb2Zmc2V0PSIzMCUiIHN0b3AtY29sb3I9IiNGNEYyRUUiIHN0b3Atb3BhY2l0eT0iMC4zMCI+PC9zdG9wPgogICAgICA8c3RvcCBvZmZzZXQ9IjY1JSIgc3RvcC1jb2xvcj0iI0Y0RjJFRSIgc3RvcC1vcGFjaXR5PSIwLjA4Ij48L3N0b3A+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI0Y0RjJFRSIgc3RvcC1vcGFjaXR5PSIwIj48L3N0b3A+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0aWxlIiB4MT0iMCIgeTE9IjAiIHgyPSIwLjYiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzIwMjUyOSI+PC9zdG9wPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEzMTYxOSI+PC9zdG9wPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTIiIGZpbGw9InVybCgjdGlsZSkiPjwvcmVjdD4KICA8Zz48Y2lyY2xlIGN4PSI1NC41MiIgY3k9IjQwLjYwIiByPSIxLjciIGZpbGw9IiM0RkQxQzUiIG9wYWNpdHk9IjAuNDYiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjU0LjUyIiBjeT0iODUuNjMiIHI9IjEuNyIgZmlsbD0iI0UwQTg1QiIgb3BhY2l0eT0iMC42MSI+PC9jaXJjbGU+PGxpbmUgeDE9IjU0LjUyIiB5MT0iODUuNjMiIHgyPSIxMy4yNSIgeTI9IjI4LjMyIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC40NyI+PC9saW5lPjxsaW5lIHgxPSIxMy4yNSIgeTE9IjczLjM1IiB4Mj0iNTQuNTIiIHkyPSI0MC42MCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNDciPjwvbGluZT48Y2lyY2xlIGN4PSIxMy4yNSIgY3k9IjI4LjMyIiByPSIxLjciIGZpbGw9IiNFMEE4NUIiIG9wYWNpdHk9IjAuNjMiPjwvY2lyY2xlPjxsaW5lIHgxPSI4Mi43NSIgeTE9IjIyLjY1IiB4Mj0iNTQuNTIiIHkyPSI4NS42MyIgc3Ryb2tlPSIjRTBBODVCIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNTEiPjwvbGluZT48bGluZSB4MT0iODIuNzUiIHkxPSI2Ny42OCIgeDI9IjU0LjUyIiB5Mj0iNDAuNjAiIHN0cm9rZT0iIzRGRDFDNSIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjUxIj48L2xpbmU+PGxpbmUgeDE9IjgyLjc1IiB5MT0iMjIuNjUiIHgyPSIxMy4yNSIgeTI9IjI4LjMyIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC41MyI+PC9saW5lPjxsaW5lIHgxPSI0MS40OCIgeTE9IjEwLjM3IiB4Mj0iNTQuNTIiIHkyPSI0MC42MCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNTMiPjwvbGluZT48Y2lyY2xlIGN4PSI4Mi43NSIgY3k9IjIyLjY1IiByPSIxLjciIGZpbGw9IiNFMEE4NUIiIG9wYWNpdHk9IjAuNzIiPjwvY2lyY2xlPjwvZz4KICA8Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSIyMiIgZmlsbD0idXJsKCNnbG93KSI+PC9jaXJjbGU+CiAgPHRleHQgeD0iNDgiIHk9IjQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1zaXplPSIxNyIgZm9udC1mYW1pbHk9IiYjMzk7Tm90byBTYW5zIERldmFuYWdhcmkmIzM5OywmIzM5O05pcm1hbGEgVUkmIzM5OywmIzM5O0RldmFuYWdhcmkgTVQmIzM5OyxzZXJpZiIgZm9udC13ZWlnaHQ9IjUwMCIgZmlsbD0iI0Y0RjJFRSI+4KWQPC90ZXh0PgogIDxnPjxjaXJjbGUgY3g9IjEzLjI1IiBjeT0iNzMuMzUiIHI9IjEuNyIgZmlsbD0iIzRGRDFDNSIgb3BhY2l0eT0iMC43OCI+PC9jaXJjbGU+PGxpbmUgeDE9IjU0LjUyIiB5MT0iODUuNjMiIHgyPSI0MS40OCIgeTI9IjU1LjQwIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42NyI+PC9saW5lPjxsaW5lIHgxPSIxMy4yNSIgeTE9IjczLjM1IiB4Mj0iODIuNzUiIHkyPSI2Ny42OCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNjciPjwvbGluZT48bGluZSB4MT0iMTMuMjUiIHkxPSIyOC4zMiIgeDI9IjQxLjQ4IiB5Mj0iNTUuNDAiIHN0cm9rZT0iI0UwQTg1QiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjY5Ij48L2xpbmU+PGxpbmUgeDE9IjEzLjI1IiB5MT0iNzMuMzUiIHgyPSI0MS40OCIgeTI9IjEwLjM3IiBzdHJva2U9IiM0RkQxQzUiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42OSI+PC9saW5lPjxjaXJjbGUgY3g9IjgyLjc1IiBjeT0iNjcuNjgiIHI9IjEuNyIgZmlsbD0iIzRGRDFDNSIgb3BhY2l0eT0iMC44NyI+PC9jaXJjbGU+PGxpbmUgeDE9IjgyLjc1IiB5MT0iMjIuNjUiIHgyPSI0MS40OCIgeTI9IjU1LjQwIiBzdHJva2U9IiNFMEE4NUIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC43MyI+PC9saW5lPjxsaW5lIHgxPSI0MS40OCIgeTE9IjEwLjM3IiB4Mj0iODIuNzUiIHkyPSI2Ny42OCIgc3Ryb2tlPSIjNEZEMUM1IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNzMiPjwvbGluZT48Y2lyY2xlIGN4PSI0MS40OCIgY3k9IjEwLjM3IiByPSIxLjciIGZpbGw9IiM0RkQxQzUiIG9wYWNpdHk9IjAuODkiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjQxLjQ4IiBjeT0iNTUuNDAiIHI9IjEuNyIgZmlsbD0iI0UwQTg1QiIgb3BhY2l0eT0iMS4wMCI+PC9jaXJjbGU+PC9nPgo8L3N2Zz4=";
+{
+  const bl=document.getElementById("brandLogo"), al=document.getElementById("aboutLogo");
+  if(bl) bl.src=YANTRA_LOGO; if(al) al.src=YANTRA_LOGO;
+  const ov=document.getElementById("about"), cl=document.getElementById("aboutClose");
+  const openA=()=>ov&&ov.classList.add("on"), closeA=()=>ov&&ov.classList.remove("on");
+  if(bl) bl.addEventListener("click",openA);
+  if(cl) cl.addEventListener("click",closeA);
+  if(ov) ov.addEventListener("click",e=>{ if(e.target===ov) closeA(); });
+  window.addEventListener("keydown",e=>{ if(e.key==="Escape") closeA(); });
+  // OS actions via JUCE native functions (open a URL / reveal the plugin in the file browser)
+  const nf=(n)=>{ try{ return Juce.getNativeFunction ? Juce.getNativeFunction(n) : null; }catch(e){ return null; } };
+  const openUrl=nf("openUrl"), reveal=nf("revealPlugin");
+  document.querySelectorAll(".aboutBtns button").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.act==="github" && openUrl) openUrl("https://github.com/forexfayella-pixel/detail-forge");
+    else if(b.dataset.act==="reveal" && reveal) reveal();
+  }));
+}
 
 // ---------- REAL meters (pushed from C++) ----------
 const hold={in:0,out:0};
