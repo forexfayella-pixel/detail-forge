@@ -9,9 +9,10 @@ namespace
         "in_gain", "out_gain",
         "sat_drive", "sat_bias", "sat_mix",
         "clip_drive", "clip_knee", "clip_ceiling", "clip_detail", "clip_detail_freq",
-        "lim_threshold", "lim_ceiling", "lim_release"
+        "lim_threshold", "lim_ceiling", "lim_release", "lim_lookahead"
     };
     const juce::StringArray kComboIds { "sat_voicing", "oversampling", "adaa_order" };
+    const juce::StringArray kToggleIds { "sat_on", "clip_on", "lim_on" };   // section enables
 
     juce::WebBrowserComponent::Resource makeResource (const char* data, int size, juce::String mime)
     {
@@ -30,6 +31,8 @@ DetailForgeEditor::DetailForgeEditor (DetailForgeProcessor& p)
     for (auto& id : kComboIds)
         comboRelays.push_back (std::make_unique<juce::WebComboBoxRelay> (id));
     bypassRelay = std::make_unique<juce::WebToggleButtonRelay> ("bypass");
+    for (auto& id : kToggleIds)
+        toggleRelays.push_back (std::make_unique<juce::WebToggleButtonRelay> (id));
 
     // --- browser options: common parts, then a platform-specific backend ---
     // The UI is one HTML/JS codebase; only the native WebView backend differs per OS.
@@ -51,6 +54,7 @@ DetailForgeEditor::DetailForgeEditor (DetailForgeProcessor& p)
     for (auto& r : sliderRelays) options = options.withOptionsFrom (*r);
     for (auto& r : comboRelays)  options = options.withOptionsFrom (*r);
     options = options.withOptionsFrom (*bypassRelay);
+    for (auto& r : toggleRelays) options = options.withOptionsFrom (*r);
 
     webView = std::make_unique<juce::WebBrowserComponent> (options);
     addAndMakeVisible (*webView);
@@ -69,6 +73,11 @@ DetailForgeEditor::DetailForgeEditor (DetailForgeProcessor& p)
     if (auto* param = processorRef.apvts.getParameter ("bypass"))
         bypassAtt = std::make_unique<juce::WebToggleButtonParameterAttachment> (
             *param, *bypassRelay, nullptr);
+
+    for (int i = 0; i < kToggleIds.size(); ++i)
+        if (auto* param = processorRef.apvts.getParameter (kToggleIds[i]))
+            toggleAtts.push_back (std::make_unique<juce::WebToggleButtonParameterAttachment> (
+                *param, *toggleRelays[(size_t) i], nullptr));
 
     webView->goToURL (juce::WebBrowserComponent::getResourceProviderRoot());
 

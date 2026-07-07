@@ -5,6 +5,7 @@
 #include <atomic>
 #include <memory>
 #include <vector>
+#include "dsp/Limiter.h"
 
 // Faust-generated types (defined in the .cpp translation unit only).
 class ClipEngine;
@@ -88,6 +89,15 @@ private:
     std::atomic<float>* inGain      = nullptr;    // "in_gain" (dB)
     std::atomic<float>* outGain     = nullptr;    // "out_gain" (dB)
     std::atomic<float>* bypass      = nullptr;    // "bypass" (0/1)
+    std::atomic<float>* satOn       = nullptr;    // "sat_on"  (0/1) section enable
+    std::atomic<float>* clipOn      = nullptr;    // "clip_on" (0/1) section enable
+    std::atomic<float>* limOn       = nullptr;    // "lim_on"  (0/1) section enable
+    std::atomic<float>* limThresh   = nullptr;    // "lim_threshold" (dB)
+    std::atomic<float>* limCeiling  = nullptr;    // "lim_ceiling" (dB)
+    std::atomic<float>* limRelease  = nullptr;    // "lim_release" (ms)
+    std::atomic<float>* limLookahead= nullptr;    // "lim_lookahead" (ms, 0..12)
+
+    TruePeakLimiter limiter;                      // stage 3 (base rate, after out gain)
 
     std::vector<std::unique_ptr<ClipEngine>> engines;    // one per channel
     std::vector<std::unique_ptr<MapUI>>      maps;

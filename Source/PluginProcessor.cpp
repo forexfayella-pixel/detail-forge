@@ -33,6 +33,13 @@ DetailForgeProcessor::DetailForgeProcessor()
     inGain      = apvts.getRawParameterValue ("in_gain");
     outGain     = apvts.getRawParameterValue ("out_gain");
     bypass      = apvts.getRawParameterValue ("bypass");
+    satOn       = apvts.getRawParameterValue ("sat_on");
+    clipOn      = apvts.getRawParameterValue ("clip_on");
+    limOn       = apvts.getRawParameterValue ("lim_on");
+    limThresh   = apvts.getRawParameterValue ("lim_threshold");
+    limCeiling  = apvts.getRawParameterValue ("lim_ceiling");
+    limRelease  = apvts.getRawParameterValue ("lim_release");
+    limLookahead= apvts.getRawParameterValue ("lim_lookahead");
 }
 
 DetailForgeProcessor::~DetailForgeProcessor() = default;
@@ -61,10 +68,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout DetailForgeProcessor::create
 
     // Global
     p.add (std::make_unique<APF>(juce::ParameterID{"in_gain",1},  "Input",  Range{-12.f,12.f,0.01f}, 0.f, dB("dB")));
-    p.add (std::make_unique<APF>(juce::ParameterID{"out_gain",1}, "Output", Range{-12.f,12.f,0.01f}, 0.f, dB("dB")));
+    p.add (std::make_unique<APF>(juce::ParameterID{"out_gain",1}, "Output", Range{-36.f,12.f,0.01f}, 0.f, dB("dB")));
     p.add (std::make_unique<APB>(juce::ParameterID{"bypass",1},   "Bypass", false));
 
     // Saturator
+    p.add (std::make_unique<APB>(juce::ParameterID{"sat_on",1}, "Saturator On", true));
     p.add (std::make_unique<APC>(juce::ParameterID{"sat_voicing",1}, "Voicing",
                                  juce::StringArray{"Tube","Tape","Xfmr"}, 0));
     p.add (std::make_unique<APF>(juce::ParameterID{"sat_drive",1}, "Sat Drive", Range{0.f,24.f,0.01f}, 6.f,  dB("dB")));
@@ -72,6 +80,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout DetailForgeProcessor::create
     p.add (std::make_unique<APF>(juce::ParameterID{"sat_mix",1},   "Sat Mix",   Range{0.f,100.f,0.1f}, 100.f,dB("%")));
 
     // Clipper
+    p.add (std::make_unique<APB>(juce::ParameterID{"clip_on",1}, "Clipper On", true));
     p.add (std::make_unique<APF>(juce::ParameterID{"clip_drive",1},   "Clip Drive",   Range{0.f,36.f,0.01f},  2.f, dB("dB")));
     p.add (std::make_unique<APF>(juce::ParameterID{"clip_knee",1},    "Clip Knee",    Range{0.f,100.f,0.1f}, 35.f, dB("%")));
     p.add (std::make_unique<APF>(juce::ParameterID{"clip_ceiling",1}, "Clip Ceiling", Range{-18.f,0.f,0.01f},-3.f, dB("dB")));
@@ -87,10 +96,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout DetailForgeProcessor::create
     p.add (std::make_unique<APC>(juce::ParameterID{"adaa_order",1},   "ADAA Order",
                                  juce::StringArray{"Off","1st","2nd"}, 2));
 
-    // Limiter
+    // Limiter (DSP lands in M2; the on/off + params are live so the section behaves consistently)
+    p.add (std::make_unique<APB>(juce::ParameterID{"lim_on",1}, "Limiter On", true));
     p.add (std::make_unique<APF>(juce::ParameterID{"lim_threshold",1}, "Lim Threshold", Range{-24.f,0.f,0.01f}, -6.f, dB("dB")));
     p.add (std::make_unique<APF>(juce::ParameterID{"lim_ceiling",1},   "Lim Ceiling",   Range{-12.f,0.f,0.01f}, -1.f, dB("dB")));
     p.add (std::make_unique<APF>(juce::ParameterID{"lim_release",1},   "Lim Release",   Range{1.f,500.f,0.1f},  60.f, dB("ms")));
+    p.add (std::make_unique<APF>(juce::ParameterID{"lim_lookahead",1}, "Lim Lookahead", Range{0.f,12.f,0.01f},   1.5f, dB("ms")));
 
     return p;
 }
@@ -105,6 +116,9 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     driveZones.clear(); kneeZones.clear(); ceilingZones.clear(); orderZones.clear();
     detailZones.clear(); detailFreqZones.clear();
     const int nch = juce::jmax (1, getTotalNumOutputChannels());
+
+    // Stage 3 limiter (base rate, after the clip OS region). Preallocated to the 12 ms max.
+    limiter.prepare (sampleRate, nch);
     for (int c = 0; c < nch; ++c)
     {
         auto e = std::make_unique<ClipEngine>();
@@ -156,6 +170,7 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     int maxLat = kLatencySamples;
     for (auto& os : oversamplers)
         maxLat = juce::jmax (maxLat, (int) std::lround (os->getLatencyInSamples()));
+    maxLat += limiter.getMaxLatencySamples();   // limiter lookahead adds to the total reported latency
     int cap = 1;
     while (cap <= maxLat + 1) cap <<= 1;
     preTapDelay.assign ((size_t) cap, 0.0f);
@@ -174,9 +189,10 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
 
     // Report the correct initial latency for the current oversampling setting.
     const int osIdx = osParam != nullptr ? (int) osParam->load() : 0;
-    lastReportedLatency = (osIdx >= 1 && osIdx <= (int) oversamplers.size())
+    const int limLat0 = (limOn == nullptr || *limOn > 0.5f) ? limiter.getLatencySamples() : 0;
+    lastReportedLatency = ((osIdx >= 1 && osIdx <= (int) oversamplers.size())
         ? (int) std::lround (oversamplers[(size_t) (osIdx - 1)]->getLatencyInSamples())
-        : kLatencySamples;
+        : kLatencySamples) + limLat0;
     setLatencySamples (lastReportedLatency);
 }
 
@@ -259,12 +275,21 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     // ADAA latency at 1x). We delay the captured dry by exactly this so the scope aligns.
     const bool bypassedNow = (bypass != nullptr && *bypass > 0.5f);
     const int  osIdxNow    = osParam != nullptr ? (int) osParam->load() : 0;
+
+    // Update the limiter's params up front so its latency is current for the accounting below.
+    const bool limEnabled = (limOn == nullptr || *limOn > 0.5f);
+    limiter.setParams (limThresh    != nullptr ? limThresh->load()    : -6.0f,
+                       limCeiling   != nullptr ? limCeiling->load()   : -1.0f,
+                       limRelease   != nullptr ? limRelease->load()   : 60.0f,
+                       limLookahead != nullptr ? limLookahead->load() : 1.5f);
+    const int limLat = limEnabled ? limiter.getLatencySamples() : 0;
+
     int captureLatency = 0;
     if (! bypassedNow)
         captureLatency = (osIdxNow >= 1 && osIdxNow <= (int) oversamplers.size())
             ? (int) std::lround (oversamplers[(size_t) (osIdxNow - 1)]->getLatencyInSamples())
             : kLatencySamples;
-    captureLatency = juce::jlimit (0, preTapMask, captureLatency);
+    captureLatency = juce::jlimit (0, preTapMask, captureLatency + limLat);
 
     // Capture the pre-processing input (channel 0), delayed by captureLatency, into the ring.
     const uint32_t w = scopeWrite.load (std::memory_order_relaxed);
@@ -323,7 +348,10 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     const float satG     = juce::Decibels::decibelsToGain (satDrive != nullptr ? satDrive->load() : 0.0f);
     const float satB     = (satBias != nullptr ? satBias->load() : 0.0f) * 0.01f * 0.7f;
     const float satMixN  = (satMix  != nullptr ? satMix->load()  : 100.0f) * 0.01f;
-    const bool  satActive = satMixN > 0.0005f && (satG > 1.0001f || satB > 1.0e-4f);
+    // Section enables (explicit user power switches). Saturator also self-gates on mix/drive.
+    const bool  satEnabled  = satOn  == nullptr || *satOn  > 0.5f;
+    const bool  clipEnabled = clipOn == nullptr || *clipOn > 0.5f;
+    const bool  satActive = satEnabled && satMixN > 0.0005f && (satG > 1.0001f || satB > 1.0e-4f);
 
     if (ig != 1.0f)
         buffer.applyGain (ig);
@@ -335,8 +363,8 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         for (int c = 0; c < numChannels; ++c)
         {
             auto* d = buffer.getWritePointer (c);
-            if (satActive) runSat (d, numSamples, satVoice, satG, satB, satMixN);
-            runClip (d, numSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
+            if (satActive)  runSat (d, numSamples, satVoice, satG, satB, satMixN);
+            if (clipEnabled) runClip (d, numSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
         }
     }
     else
@@ -350,8 +378,8 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         for (int c = 0; c < numChannels; ++c)
         {
             auto* d = up.getChannelPointer ((size_t) c);
-            if (satActive) runSat (d, osSamples, satVoice, satG, satB, satMixN);
-            runClip (d, osSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
+            if (satActive)  runSat (d, osSamples, satVoice, satG, satB, satMixN);
+            if (clipEnabled) runClip (d, osSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
         }
         os.processSamplesDown (sub);
         reportedLatency = (int) std::lround (os.getLatencyInSamples());
@@ -374,9 +402,22 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     if (og != 1.0f)
         buffer.applyGain (og);
 
+    // Stage 3 — true-peak lookahead limiter (final ceiling), at base rate. Its lookahead adds to
+    // the reported latency; when disabled it adds none and the GR meter reads 0.
+    if (limEnabled && numChannels > 0)
+    {
+        float* ch[2] = { buffer.getWritePointer (0),
+                         numChannels > 1 ? buffer.getWritePointer (1) : nullptr };
+        limiter.process (ch, numChannels, numSamples);
+        grDb.store (limiter.getGainReductionDb());
+        reportedLatency += limLat;
+    }
+    else
+        grDb.store (0.0f);
+
     if (reportedLatency != lastReportedLatency)
     {
-        setLatencySamples (reportedLatency);   // rare (only when OS factor changes)
+        setLatencySamples (reportedLatency);   // changes on OS factor, lookahead, or limiter enable
         lastReportedLatency = reportedLatency;
     }
 
@@ -392,8 +433,7 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     const float outTPdb = (numChannels > 0)
         ? truePeakDb (*tpUpOut, tpScratchOut, buffer.getReadPointer (0), numSamples) : -100.0f;
     inLevelDb.store  (inTPdb);
-    outLevelDb.store (outTPdb);
-    grDb.store (0.0f); // limiter not built yet
+    outLevelDb.store (outTPdb);   // GR was stored above from the limiter (or 0 when disabled)
 }
 
 void DetailForgeProcessor::readScope (float* inDst, float* outDst, int n) const noexcept

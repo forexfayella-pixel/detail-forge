@@ -22,30 +22,36 @@
   .brand{display:flex;align-items:center;gap:9px;}
   .brand .name{font:700 15px/1 ui-sans-serif,system-ui;letter-spacing:2.5px;color:#EAF0F4;}
   .brand .name b{color:#F2953A;font-weight:700;}
-  .brand .ver{font:600 10px/1 ui-monospace,monospace;letter-spacing:1.5px;color:#8A939C;align-self:flex-end;margin-bottom:3px;}
+  .brand .ver{font:600 11px/1 ui-monospace,monospace;letter-spacing:1.5px;color:#9BA4AE;align-self:flex-end;margin-bottom:3px;}
   .brand .ver b{color:#F2953A;font-weight:700;}
   .panel{display:flex;flex-direction:column;gap:8px;padding:10px 11px;border:1px solid #262A30;border-radius:10px;
          background:linear-gradient(180deg,#1A1D22,#141619);}
   .panel.global{flex-direction:row;align-items:center;gap:8px;padding:9px 11px;background:linear-gradient(180deg,#191C21,#131519);}
   .panel.clip{background:linear-gradient(180deg,#20201C,#161511);border:1px solid rgba(242,149,58,.4);box-shadow:0 0 18px -6px rgba(242,149,58,.3);}
   .phead{display:flex;align-items:center;justify-content:space-between;}
-  .ptitle{font:700 10px/1 ui-sans-serif,system-ui;letter-spacing:2px;color:#EAF0F4;}
+  .ptitle{font:700 12px/1 ui-sans-serif,system-ui;letter-spacing:2px;color:#EAF0F4;}
   .ptitle.warm{color:#F7D9B0;}
-  .ptag{font:500 7px/1 ui-monospace,monospace;letter-spacing:1px;color:#5A626B;}
-  .badge{font:700 7px/1 ui-monospace,monospace;color:#0C0D0F;background:#F2953A;border-radius:3px;padding:2px 4px;letter-spacing:1px;margin-left:4px;}
+  .ptag{font:500 9px/1 ui-monospace,monospace;letter-spacing:1px;color:#6B747D;}
+  .badge{font:700 9px/1 ui-monospace,monospace;color:#0C0D0F;background:#F2953A;border-radius:3px;padding:2px 5px;letter-spacing:1px;margin-left:4px;}
+  /* section power toggle: lit orange when on, unlit grey when off */
+  .pwr{font:700 9px/1 ui-monospace,monospace;color:#0C0D0F;background:#F2953A;border:none;border-radius:3px;padding:3px 6px;letter-spacing:1px;margin-left:5px;cursor:pointer;box-shadow:0 0 8px #F2953A99;transition:background .12s,color .12s,box-shadow .12s;}
+  .pwr.off{background:#2A2E34;color:#727982;box-shadow:none;}
+  /* a disabled section goes dark/desaturated (accents unlit) */
+  .panel{transition:filter .16s ease,opacity .16s ease;}
+  .panel.off{filter:grayscale(0.92) brightness(0.6);opacity:0.8;}
   .row{display:flex;gap:9px;align-items:flex-end;}
   .row.between{justify-content:space-between;}
   /* knob */
   .knob{display:flex;flex-direction:column;align-items:center;gap:5px;}
-  .knob .klabel{font:600 9px/1 ui-sans-serif,system-ui;letter-spacing:1.4px;color:#8A939C;text-transform:uppercase;}
+  .knob .klabel{font:600 11px/1 ui-sans-serif,system-ui;letter-spacing:1.2px;color:#9BA4AE;text-transform:uppercase;}
   .knob .kdial{position:relative;cursor:ns-resize;touch-action:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.55));}
-  .knob .kval{font:600 11px/1 ui-monospace,'SF Mono',monospace;color:#EAF6F9;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+  .knob .kval{font:600 12px/1 ui-monospace,'SF Mono',monospace;color:#EAF6F9;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
   /* selector */
   .sel{display:flex;flex-direction:column;gap:5px;width:100%;}
-  .sel .slabel{font:600 9px/1 ui-sans-serif,system-ui;letter-spacing:1.4px;color:#8A939C;text-transform:uppercase;}
+  .sel .slabel{font:600 11px/1 ui-sans-serif,system-ui;letter-spacing:1.2px;color:#9BA4AE;text-transform:uppercase;}
   .sel .segs{display:flex;gap:3px;padding:3px;background:#0E1013;border:1px solid #262A30;border-radius:7px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.6);}
   .sel button{flex:1;min-width:0;border:none;cursor:pointer;padding:6px 2px;border-radius:5px;
-              font:600 10px/1 ui-sans-serif,system-ui;letter-spacing:.4px;text-transform:uppercase;
+              font:600 11px/1 ui-sans-serif,system-ui;letter-spacing:.4px;text-transform:uppercase;
               transition:all .12s ease;font-variant-numeric:tabular-nums;background:transparent;color:#6B747D;}
   /* preset + bypass */
   .presetcol{flex:1;display:flex;flex-direction:column;gap:6px;}
@@ -58,7 +64,7 @@
   /* display side */
   .viz{position:relative;background:#0A0C0F;border:1px solid #23272D;border-radius:9px;overflow:hidden;}
   .viz canvas{width:100%;height:100%;display:block;}
-  .viz .tag{position:absolute;font:600 8px/1 ui-monospace,monospace;letter-spacing:2px;color:#5A626B;}
+  .viz .tag{position:absolute;font:600 10px/1 ui-monospace,monospace;letter-spacing:1.5px;color:#6B747D;}
   .scopewrap{flex:1;min-height:236px;box-shadow:inset 0 0 50px rgba(0,0,0,.6);}
   .lowrow{display:flex;gap:9px;height:132px;}
   .meterbridge{display:flex;align-items:center;gap:12px;padding:9px 12px;background:linear-gradient(180deg,#191C21,#131519);border:1px solid #262A30;border-radius:10px;overflow:hidden;}
@@ -68,15 +74,15 @@
   .fill{position:absolute;left:0;bottom:0;width:100%;background:linear-gradient(0deg,#2FBF9E,#8FD9E6 72%,#EAF6F9);height:0;}
   .fill.gr{top:0;bottom:auto;background:linear-gradient(180deg,#FF7A1A,#F2953A);}
   .tick{position:absolute;left:0;width:100%;height:2px;background:#EAF6F9;bottom:0;}
-  .mlabel{font:600 7px/1 ui-monospace,monospace;letter-spacing:1px;color:#8A939C;}
-  .mnum{font:600 8px/1 ui-monospace,monospace;color:#9AD3DE;width:34px;text-align:center;font-variant-numeric:tabular-nums;}
+  .mlabel{font:600 9px/1 ui-monospace,monospace;letter-spacing:1px;color:#9BA4AE;}
+  .mnum{font:600 10px/1 ui-monospace,monospace;color:#9AD3DE;width:38px;text-align:center;font-variant-numeric:tabular-nums;}
   .mnum.gr{color:#F2953A;}
   .statuscol{display:flex;flex-direction:column;gap:7px;flex:1;}
   .statusrow{display:flex;align-items:center;gap:7px;}
   #led{width:10px;height:10px;border-radius:50%;background:#35E0C0;box-shadow:0 0 8px #35E0C0;}
   #ledlabel{font:600 10px/1 ui-sans-serif,system-ui;color:#35E0C0;}
-  .chaintag{font:500 8px/1 ui-monospace,monospace;letter-spacing:1px;color:#5A626B;margin-left:auto;}
-  .subrow{display:flex;align-items:center;gap:14px;font:500 8px/1 ui-monospace,monospace;letter-spacing:1px;color:#5A626B;}
+  .chaintag{font:500 10px/1 ui-monospace,monospace;letter-spacing:1px;color:#6B747D;margin-left:auto;}
+  .subrow{display:flex;align-items:center;gap:14px;font:500 10px/1 ui-monospace,monospace;letter-spacing:1px;color:#6B747D;}
   .sep{width:1px;height:80px;background:#262A30;}
 </style>
 </head>
@@ -88,7 +94,7 @@
       <div class="brand">
         <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L20 12 L12 22 L4 12 Z" fill="none" stroke="#F2953A" stroke-width="1.6"></path><path d="M12 7 L16.5 12 L12 17 L7.5 12 Z" fill="#F2953A"></path></svg>
         <div class="name">DETAIL <b>FORGE</b></div>
-        <span class="ver"><b>FAYELLA</b> · v0.5</span>
+        <span class="ver"><b>FAYELLA</b> · v0.8</span>
       </div>
 
       <!-- global -->
@@ -106,8 +112,8 @@
       </div>
 
       <!-- saturator -->
-      <div class="panel">
-        <div class="phead"><span class="ptitle">SATURATOR <span class="badge">LIVE</span></span><span class="ptag">HARMONIC FRONT-END · 01</span></div>
+      <div class="panel" data-section="sat_on">
+        <div class="phead"><span class="ptitle">SATURATOR <button class="pwr" data-pwr="sat_on" title="Enable / disable">LIVE</button></span><span class="ptag">HARMONIC FRONT-END · 01</span></div>
         <div class="row">
           <div style="flex:1;"><div class="sel" data-selector="sat_voicing" data-label="VOICING" data-accent="#F2953A"></div></div>
           <div class="knob" data-knob="sat_drive" data-label="DRIVE" data-accent="#F2953A" data-size="50" data-fmt="db" data-def="6"></div>
@@ -117,8 +123,8 @@
       </div>
 
       <!-- clipper -->
-      <div class="panel clip">
-        <div class="phead"><span class="ptitle warm">CLIPPER <span class="badge">LIVE</span></span><span class="ptag" style="color:#8a7355;">ANTI-ALIASED · ADAA · 02</span></div>
+      <div class="panel clip" data-section="clip_on">
+        <div class="phead"><span class="ptitle warm">CLIPPER <button class="pwr" data-pwr="clip_on" title="Enable / disable">LIVE</button></span><span class="ptag" style="color:#8a7355;">ANTI-ALIASED · ADAA · 02</span></div>
         <div class="row between">
           <div class="knob" data-knob="clip_drive" data-label="DRIVE" data-accent="#FF7A1A" data-size="52" data-fmt="db" data-def="12"></div>
           <div class="knob" data-knob="clip_knee" data-label="KNEE" data-accent="#F2953A" data-size="52" data-fmt="knee" data-def="35"></div>
@@ -135,12 +141,13 @@
       </div>
 
       <!-- limiter -->
-      <div class="panel">
-        <div class="phead"><span class="ptitle">LIMITER</span><span class="ptag">TRUE-PEAK BRICKWALL · 03</span></div>
+      <div class="panel" data-section="lim_on">
+        <div class="phead"><span class="ptitle">LIMITER <button class="pwr" data-pwr="lim_on" title="Enable / disable">LIVE</button></span><span class="ptag">TRUE-PEAK BRICKWALL · 03</span></div>
         <div class="row between">
           <div class="knob" data-knob="lim_threshold" data-label="THRESH" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-6"></div>
           <div class="knob" data-knob="lim_ceiling" data-label="CEILING" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-1"></div>
           <div class="knob" data-knob="lim_release" data-label="RELEASE" data-accent="#8FD9E6" data-size="52" data-fmt="ms" data-def="60"></div>
+          <div class="knob" data-knob="lim_lookahead" data-label="LOOKAHEAD" data-accent="#FF7A1A" data-size="52" data-fmt="ms" data-def="1.5"></div>
         </div>
       </div>
     </div>
@@ -150,13 +157,13 @@
       <div class="viz scopewrap">
         <canvas id="scope"></canvas>
         <div class="tag" style="top:8px;left:10px;">OSCILLOSCOPE — LIVE · SYNCED</div>
-        <div class="tag" style="top:8px;right:10px;left:auto;color:#8FD9E6;">IN vs OUT ● ▲TRIG</div>
-        <div class="tag" style="bottom:8px;left:10px;"><span style="color:#9AD3DE;">━</span> IN&nbsp;&nbsp;<span style="color:#F2953A;">━</span> OUT</div>
+        <div class="tag" id="deltaToggle" style="top:8px;right:10px;left:auto;color:#C792EA;cursor:pointer;" title="Toggle Δ (out − in): the detail added/removed">Δ DELTA ●</div>
+        <div class="tag" style="bottom:8px;left:10px;"><span style="color:#9AD3DE;">━</span> IN&nbsp;&nbsp;<span style="color:#F2953A;">━</span> OUT&nbsp;&nbsp;<span style="color:#C792EA;">━</span> <span id="deltaGainLbl">Δ×6</span></div>
         <div class="tag" id="ampToggle" style="bottom:8px;right:10px;left:auto;cursor:pointer;color:#8FD9E6;" title="Toggle linear / dB amplitude axis">LIN</div>
       </div>
       <div class="lowrow">
         <div class="viz" style="flex:1;"><canvas id="transfer"></canvas><div class="tag" style="top:7px;left:9px;">TRANSFER</div></div>
-        <div class="viz" style="flex:1;"><canvas id="spectrum"></canvas><div class="tag" style="top:7px;left:9px;">HARMONICS</div></div>
+        <div class="viz" style="flex:1;"><canvas id="spectrum"></canvas><div class="tag" style="top:7px;left:9px;">HARMONICS</div><div class="tag" id="specCeil" style="top:7px;right:9px;left:auto;color:#8FD9E6;cursor:ns-resize;" title="Drag vertically to set the dB ceiling">CEIL 0 dB</div></div>
       </div>
       <!-- meter bridge (REAL levels) -->
       <div class="meterbridge">
@@ -168,7 +175,7 @@
         <div class="sep"></div>
         <div class="statuscol">
           <div class="statusrow"><div id="led"></div><span id="ledlabel">CLEAN</span><span class="chaintag" id="chainTag">4x OVERSAMPLE · ADAA 2nd</span></div>
-          <div class="subrow"><span>TRUE-PEAK LIMITER</span><span style="color:#4b525a;">SOURCE · LIVE</span><span style="margin-left:auto;color:#4b525a;">GR pending M2</span></div>
+          <div class="subrow"><span>TRUE-PEAK LIMITER</span><span style="color:#6b7280;">LOOKAHEAD · LINKED</span><span style="margin-left:auto;color:#6b7280;">GR LIVE</span></div>
         </div>
       </div>
     </div>
@@ -276,13 +283,26 @@ bypassState.valueChangedEvent.addListener(renderBypass);
 bypassBtn.addEventListener("click",()=>bypassState.setValue(!bypassState.getValue()));
 renderBypass();
 
+// ---------- section power toggles (sat/clip/lim): light the section on, dim it off ----------
+const SEC={};
+[...document.querySelectorAll("[data-pwr]")].forEach(btn=>{
+  const id=btn.dataset.pwr, st=Juce.getToggleState(id);
+  const panel=document.querySelector(`.panel[data-section="${id}"]`);
+  SEC[id]=st;
+  function render(){ const on=st.getValue(); btn.classList.toggle("off",!on); btn.textContent=on?"LIVE":"OFF";
+    if(panel) panel.classList.toggle("off",!on); }
+  st.valueChangedEvent.addListener(render);
+  btn.addEventListener("click",e=>{ e.stopPropagation(); st.setValue(!st.getValue()); });
+  render();
+});
+
 // ---------- build all controls ----------
 const knobs=[...document.querySelectorAll("[data-knob]")].map(makeKnob);
 const selectors=[...document.querySelectorAll("[data-selector]")].map(makeSelector);
 
 // ---------- gather all param states for preview + presets ----------
 const S={};
-["in_gain","out_gain","sat_drive","sat_bias","sat_mix","clip_drive","clip_knee","clip_ceiling","clip_detail","clip_detail_freq","lim_threshold","lim_ceiling","lim_release"]
+["in_gain","out_gain","sat_drive","sat_bias","sat_mix","clip_drive","clip_knee","clip_ceiling","clip_detail","clip_detail_freq","lim_threshold","lim_ceiling","lim_release","lim_lookahead"]
   .forEach(id=>S[id]=Juce.getSliderState(id));
 const C={ sat_voicing:Juce.getComboBoxState("sat_voicing"), oversampling:Juce.getComboBoxState("oversampling"), adaa_order:Juce.getComboBoxState("adaa_order") };
 
@@ -297,7 +317,7 @@ function params(){
 }
 
 // ---------- presets (writes real params) ----------
-const INIT={in_gain:0,sat_voicing:'Tube',sat_drive:6,sat_bias:20,sat_mix:100,clip_drive:2,clip_knee:35,clip_ceiling:-3,clip_detail:0,clip_detail_freq:3000,oversampling:'4x',adaa_order:'2nd',lim_threshold:-6,lim_ceiling:-1,lim_release:60,out_gain:0,bypass:false};
+const INIT={in_gain:0,sat_on:true,clip_on:true,lim_on:true,sat_voicing:'Tube',sat_drive:6,sat_bias:20,sat_mix:100,clip_drive:2,clip_knee:35,clip_ceiling:-3,clip_detail:0,clip_detail_freq:3000,oversampling:'4x',adaa_order:'2nd',lim_threshold:-6,lim_ceiling:-1,lim_release:60,lim_lookahead:1.5,out_gain:0,bypass:false};
 const PRESETS=[
   {name:'Init',params:{}},
   {name:'Glue Master',params:{sat_voicing:'Tube',sat_drive:8,sat_bias:30,sat_mix:60,clip_drive:10,clip_knee:55,clip_ceiling:-2,lim_threshold:-8,lim_ceiling:-1,lim_release:120}},
@@ -320,6 +340,7 @@ function applyPreset(i){
   for(const k in S) if(k in merged) setSliderScaled(S[k],merged[k]);
   setComboLabel(C.sat_voicing,merged.sat_voicing); setComboLabel(C.oversampling,merged.oversampling); setComboLabel(C.adaa_order,merged.adaa_order);
   bypassState.setValue(!!merged.bypass);
+  for(const k in SEC) if(k in merged) SEC[k].setValue(!!merged[k]);
   document.getElementById("presetName").textContent=PRESETS[presetIdx].name;
 }
 document.getElementById("prevPreset").addEventListener("click",()=>applyPreset(presetIdx-1));
@@ -413,6 +434,22 @@ function warp(s){
   const t=document.getElementById("ampToggle");
   if(t) t.addEventListener("click",()=>{ AMP.mode = AMP.mode==='lin'?'db':'lin'; t.textContent = AMP.mode==='lin'?'LIN':'dB'; });
 }
+// Δ delta toggle (click) + gain via mouse-wheel over the scope.
+const SPEC = { ceilDb:0, bands:44, range:72 };   // harmonics display: adjustable dB ceiling
+{
+  const dt=document.getElementById("deltaToggle"), gl=document.getElementById("deltaGainLbl");
+  if(dt) dt.addEventListener("click",()=>{ SCOPE.delta=!SCOPE.delta; dt.style.opacity=SCOPE.delta?1:0.4; dt.textContent=SCOPE.delta?"Δ DELTA ●":"Δ DELTA ○"; });
+  const sc=document.getElementById("scope");
+  if(sc) sc.addEventListener("wheel",e=>{ e.preventDefault(); SCOPE.deltaGain=clampv(SCOPE.deltaGain+(e.deltaY<0?1:-1),1,32); if(gl)gl.textContent="Δ×"+SCOPE.deltaGain; },{passive:false});
+  // Harmonics dB-ceiling: drag the CEIL label (or scroll the spectrum) vertically.
+  const sceil=document.getElementById("specCeil"), spec=document.getElementById("spectrum");
+  const setCeil=v=>{ SPEC.ceilDb=clampv(v,-24,24); if(sceil)sceil.textContent="CEIL "+(SPEC.ceilDb>0?"+":"")+SPEC.ceilDb+" dB"; };
+  if(sceil){ let dragY=null,base=0;
+    sceil.addEventListener("pointerdown",e=>{e.preventDefault();sceil.setPointerCapture(e.pointerId);dragY=e.clientY;base=SPEC.ceilDb;});
+    sceil.addEventListener("pointermove",e=>{ if(dragY!==null) setCeil(Math.round(base+(dragY-e.clientY)*0.25)); });
+    sceil.addEventListener("pointerup",()=>{dragY=null;}); }
+  if(spec) spec.addEventListener("wheel",e=>{ e.preventDefault(); setCeil(SPEC.ceilDb+(e.deltaY<0?1:-1)); },{passive:false});
+}
 // Reconstruct x → 8x oversampled Float32Array (edge-clamped). Optionally over a sub-range
 // [i0,i1) to avoid oversampling the whole ring when only a window is drawn.
 function reconstruct(x, k=LANCZOS, i0=0, i1=x.length){
@@ -463,8 +500,16 @@ function drawClipHighlight(ctx,w,Y,inW,t0,span,ceil){
   ctx.restore();
 }
 
+// Scope config. delta = show (out−in)·gain (exactly the detail the chain adds/removes).
+const SCOPE = { delta:true, deltaGain:6 };
+function clampv(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
+
+// STEADY scope. Key fix: the drawn window has a FIXED span (never derived from the detected
+// period), so it can never stretch/warp out of frame on heavy bass. We only slide the start t0
+// to a rising zero-cross for phase-lock on pitched material (stands still); unpitched/bass falls
+// back to t0=0 (smooth roll, still in-frame). All drawing is clipped to the frame.
 function drawScope(){ const cv=document.getElementById("scope"),c=prep(cv);if(!c)return;const{ctx,w,h}=c;ctx.clearRect(0,0,w,h);
-  const cy=h/2,amp=h/2/1.12,Y=s=>cy-Math.max(-1.15,Math.min(1.15,warp(s)))*amp;
+  const cy=h/2,amp=h/2*0.92,Y=s=>cy-clampv(warp(s),-1.08,1.08)*amp;
   ctx.strokeStyle="rgba(255,255,255,0.045)";ctx.lineWidth=1;
   for(let i=1;i<8;i++){const x=w*i/8;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
   for(let j=1;j<4;j++){const y=h*j/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
@@ -474,19 +519,26 @@ function drawScope(){ const cv=document.getElementById("scope"),c=prep(cv);if(!c
   ctx.strokeStyle="rgba(242,149,58,0.35)";[lc,-lc].forEach(v=>{ctx.beginPath();ctx.moveTo(0,Y(v));ctx.lineTo(w,Y(v));ctx.stroke();});
   ctx.strokeStyle="rgba(143,217,230,0.18)";[cc,-cc].forEach(v=>{ctx.beginPath();ctx.moveTo(0,Y(v));ctx.lineTo(w,Y(v));ctx.stroke();});
   ctx.setLineDash([]);
-  const WAVE=Wave.latest(); if(!WAVE)return; const {inW,outW,sr}=WAVE;
-  // Trigger on the latency-aligned dry input: integer periods locked to a rising zero-cross.
-  const period=detectPeriod(inW,sr||48000);
-  let t0=0,span=inW.length;
-  if(period>0){ const cycles=Math.max(1,Math.min(3,Math.floor((inW.length*0.92)/period))); span=period*cycles;
-    t0=risingCross(inW,Math.floor(inW.length*0.03)); if(t0<0)t0=0;
-    if(t0+span>=inW.length)t0=Math.max(0,inW.length-span-1); }
-  span=Math.max(2,Math.min(span, inW.length-t0-1));
-  // Clipped tips (removed by the clipper) shaded under the traces — skip in bypass.
-  if(!bypassState.getValue()) drawClipHighlight(ctx,w,Y,inW,t0,span,cc);
-  // inW/outW share t0/span — they are sample-aligned in the processor, so an impulse lines up.
+  const WAVE=Wave.latest(); if(!WAVE)return; const {inW,outW,sr}=WAVE; const N=inW.length; if(N<4)return;
+  const span=Math.max(2,Math.floor((N-1)*0.85));           // FIXED — never period-derived (no warp)
+  let t0=0;
+  if(detectPeriod(inW,sr||48000)>0){ const zc=risingCross(inW,2); if(zc>=0 && zc<=N-1-span) t0=zc; }
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,w,h); ctx.clip();   // nothing escapes the frame
+  const bp=bypassState.getValue();
+  if(!bp) drawClipHighlight(ctx,w,Y,inW,t0,span,cc);
   drawWave(ctx,w,Y,inW, t0,span,{color:"rgba(154,211,222,0.5)",width:1.4,glow:0});  // dry (ghost)
   drawWave(ctx,w,Y,outW,t0,span,{color:"#FF8A2A",width:2,glow:7});                  // wet
+  if(SCOPE.delta && !bp) drawDelta(ctx,w,Y,inW,outW,t0,span,SCOPE.deltaGain);       // Δ = detail
+  ctx.restore();
+}
+// Δ trace: (out − in)·gain reconstructed — literally what the chain changed (detail folded back,
+// tips clipped). Drawn last, on top, so the preservation is unmistakable.
+function drawDelta(ctx,w,Y,inW,outW,t0,span,gain){
+  const d=new Float32Array(span); for(let i=0;i<span;i++) d[i]=(outW[t0+i]-inW[t0+i])*gain;
+  const rec=reconstruct(d,LANCZOS,0,span),M=rec.length; if(M<1)return;
+  ctx.save();ctx.strokeStyle="#C792EA";ctx.lineWidth=1.4;ctx.shadowBlur=5;ctx.shadowColor="rgba(199,146,234,0.6)";
+  ctx.beginPath(); for(let k=0;k<M;k++){ const x=k/M*w,y=Y(rec[k]); k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.stroke();ctx.restore();
 }
 
 // TRANSFER = the ACTUAL sat→clip curve, probed from the DSP (ramp through the real engine),
@@ -526,10 +578,11 @@ function drawSpectrum(){ const cv=document.getElementById("spectrum"),c=prep(cv)
   for(let i=0;i<N;i++){const win=0.5-0.5*Math.cos(2*Math.PI*i/(N-1));re[i]=outW[i]*win;im[i]=0;}
   fft(re,im); const half=N>>1,mags=new Float64Array(half);
   for(let i=0;i<half;i++)mags[i]=Math.sqrt(re[i]*re[i]+im[i]*im[i]);
-  const bands=28,fmin=2,fmax=half-1;
+  const bands=SPEC.bands,fmin=2,fmax=half-1;
   for(let b=0;b<bands;b++){ const f0=Math.round(fmin*Math.pow(fmax/fmin,b/bands)),f1=Math.max(f0+1,Math.round(fmin*Math.pow(fmax/fmin,(b+1)/bands)));
     let m=0;for(let k=f0;k<f1&&k<half;k++)if(mags[k]>m)m=mags[k];
-    const norm=Math.max(0,Math.min(1,(20*Math.log10(m+1e-9)+72)/72)),bh=Math.max(1,norm*(base-top));
+    // dB with an adjustable ceiling: window = [ceilDb-range, ceilDb], so loud signals no longer pin.
+    const norm=clampv((20*Math.log10(m+1e-9)-SPEC.ceilDb+SPEC.range)/SPEC.range,0,1),bh=Math.max(1,norm*(base-top));
     const bw=(w-pad*2)/bands,x=pad+b*bw+bw*0.15;
     ctx.fillStyle="rgba(242,149,58,"+(0.32+0.55*norm)+")";ctx.shadowBlur=3;ctx.shadowColor="rgba(242,149,58,0.4)";
     ctx.fillRect(x,base-bh,bw*0.7,bh);} ctx.shadowBlur=0; }

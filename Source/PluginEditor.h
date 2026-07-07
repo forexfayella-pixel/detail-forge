@@ -37,6 +37,7 @@ private:
     std::vector<std::unique_ptr<juce::WebSliderRelay>>      sliderRelays;
     std::vector<std::unique_ptr<juce::WebComboBoxRelay>>    comboRelays;
     std::unique_ptr<juce::WebToggleButtonRelay>            bypassRelay;
+    std::vector<std::unique_ptr<juce::WebToggleButtonRelay>> toggleRelays;   // section enables
 
     // 2) the browser SECOND
     std::unique_ptr<juce::WebBrowserComponent>            webView;
@@ -45,6 +46,7 @@ private:
     std::vector<std::unique_ptr<juce::WebSliderParameterAttachment>>    sliderAtts;
     std::vector<std::unique_ptr<juce::WebComboBoxParameterAttachment>>  comboAtts;
     std::unique_ptr<juce::WebToggleButtonParameterAttachment>          bypassAtt;
+    std::vector<std::unique_ptr<juce::WebToggleButtonParameterAttachment>> toggleAtts;   // section enables
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DetailForgeEditor)
 };
