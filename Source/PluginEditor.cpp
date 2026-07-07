@@ -108,11 +108,11 @@ void DetailForgeEditor::timerCallback()
     o->setProperty ("gr",  (double) processorRef.grDb.load());
     webView->emitEventIfBrowserIsVisible ("meters", juce::var (o.get()));
 
-    // Live scope waveform: pack the last N in/out samples and ship as base64.
+    // Live scope waveform: pack the last N in/out/clip samples and ship as base64.
     // 4096 (~85 ms @48k) so low notes (a B0 saw's ~32 ms period) fit and can be sync-locked.
     constexpr int N = 4096;
-    std::array<float, 2 * N> packed;
-    processorRef.readScope (packed.data(), packed.data() + N, N);
+    std::array<float, 3 * N> packed;
+    processorRef.readScope (packed.data(), packed.data() + N, packed.data() + 2 * N, N);
     auto b64 = juce::Base64::toBase64 (packed.data(), sizeof (float) * packed.size());
 
     juce::DynamicObject::Ptr w = new juce::DynamicObject();

@@ -193,6 +193,13 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     preTapMask = cap - 1;
     preTapPos  = 0;
 
+    // Clip-tap delay: sized to the max limiter latency (the clip tap is captured pre-limiter).
+    int ccap = 1;
+    while (ccap <= limiter.getMaxLatencySamples() + 1) ccap <<= 1;
+    clipTapDelay.assign ((size_t) ccap, 0.0f);
+    clipTapMask = ccap - 1;
+    clipTapPos  = 0;
+
     // True-peak metering: dedicated mono 4x (=2 stages) oversamplers, one per meter tap.
     using OS = juce::dsp::Oversampling<float>;
     tpUpIn  = std::make_unique<OS> ((size_t) 1, (size_t) 2, OS::filterHalfBandPolyphaseIIR, true, false);
@@ -335,7 +342,10 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         {
             const float* in0 = buffer.getReadPointer (0);
             for (int i = 0; i < numSamples; ++i)
-                outRing[(w + (uint32_t) i) & kScopeMask] = in0[i];
+            {
+                const uint32_t idx = (w + (uint32_t) i) & kScopeMask;
+                outRing[idx] = in0[i]; clipRing[idx] = in0[i];   // bypass: everything == input (Δ = 0)
+            }
         }
         scopeWrite.store (w + (uint32_t) numSamples, std::memory_order_release);
         // Output == input in true bypass; still run tpUpOut (on the input) to keep its state warm.
@@ -429,6 +439,21 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         dcX1[(size_t) c] = x1; dcY1[(size_t) c] = y1;
     }
 
+    // Clip-stage tap (ch0, post sat+clip+DC, PRE out-gain/limiter) for the stage-specific Δ view.
+    // Delayed by the limiter latency so it aligns with the post-everything in/out rings.
+    if (numChannels > 0)
+    {
+        const int cl = juce::jlimit (0, clipTapMask, limLat);
+        const float* c0 = buffer.getReadPointer (0);
+        for (int i = 0; i < numSamples; ++i)
+        {
+            clipTapDelay[(size_t) clipTapPos] = c0[i];
+            const int rd = (clipTapPos - cl) & clipTapMask;
+            clipRing[(w + (uint32_t) i) & kScopeMask] = clipTapDelay[(size_t) rd];
+            clipTapPos = (clipTapPos + 1) & clipTapMask;
+        }
+    }
+
     buffer.applyGainRamp (0, numSamples, prevOutGain, og);   // per-sample ramp (anti-zipper)
     prevOutGain = og;
 
@@ -466,14 +491,15 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     outLevelDb.store (outTPdb);   // GR was stored above from the limiter (or 0 when disabled)
 }
 
-void DetailForgeProcessor::readScope (float* inDst, float* outDst, int n) const noexcept
+void DetailForgeProcessor::readScope (float* inDst, float* outDst, float* clipDst, int n) const noexcept
 {
     const uint32_t w = scopeWrite.load (std::memory_order_acquire);
     for (int k = 0; k < n; ++k)
     {
         const uint32_t idx = (w - (uint32_t) n + (uint32_t) k) & kScopeMask;
-        inDst[k]  = inRing[idx];
-        outDst[k] = outRing[idx];
+        inDst[k]   = inRing[idx];
+        outDst[k]  = outRing[idx];
+        clipDst[k] = clipRing[idx];
     }
 }
 

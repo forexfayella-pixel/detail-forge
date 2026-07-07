@@ -36,6 +36,12 @@
   /* section power toggle: lit orange when on, unlit grey when off */
   .pwr{font:700 9px/1 ui-monospace,monospace;color:#0C0D0F;background:#F2953A;border:none;border-radius:3px;padding:3px 6px;letter-spacing:1px;margin-left:5px;cursor:pointer;box-shadow:0 0 8px #F2953A99;transition:background .12s,color .12s,box-shadow .12s;}
   .pwr.off{background:#2A2E34;color:#727982;box-shadow:none;}
+  /* "send this stage to the Δ view" button (mint when it's the active Δ source) */
+  .dsend{font:700 8px/1 ui-monospace,monospace;color:#8A939C;background:#20242A;border:1px solid #33383F;border-radius:3px;padding:2px 5px;letter-spacing:.5px;margin-left:5px;cursor:pointer;transition:all .12s;}
+  .dsend.on{color:#0C0D0F;background:#3DE1A0;border-color:#3DE1A0;box-shadow:0 0 8px #3DE1A088;}
+  /* clickable scope legend traces (dim when the trace is hidden) */
+  .leg{cursor:pointer;}
+  .leg.off{opacity:0.35;text-decoration:line-through;}
   /* a disabled section goes dark/desaturated (accents unlit) */
   .panel{transition:filter .16s ease,opacity .16s ease;}
   .panel.off{filter:grayscale(0.92) brightness(0.6);opacity:0.8;}
@@ -94,7 +100,7 @@
       <div class="brand">
         <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L20 12 L12 22 L4 12 Z" fill="none" stroke="#F2953A" stroke-width="1.6"></path><path d="M12 7 L16.5 12 L12 17 L7.5 12 Z" fill="#F2953A"></path></svg>
         <div class="name">DETAIL <b>FORGE</b></div>
-        <span class="ver"><b>FAYELLA</b> · v0.9</span>
+        <span class="ver"><b>FAYELLA</b> · v0.10</span>
       </div>
 
       <!-- global -->
@@ -113,7 +119,7 @@
 
       <!-- saturator -->
       <div class="panel" data-section="sat_on">
-        <div class="phead"><span class="ptitle">SATURATOR <button class="pwr" data-pwr="sat_on" title="Enable / disable">LIVE</button></span><span class="ptag">HARMONIC FRONT-END · 01</span></div>
+        <div class="phead"><span class="ptitle">SATURATOR <button class="pwr" data-pwr="sat_on" title="Enable / disable">LIVE</button> <button class="dsend" data-dsrc="clip" title="Show this stage in the Δ view">→Δ</button></span><span class="ptag">HARMONIC FRONT-END · 01</span></div>
         <div class="row">
           <div style="flex:1;"><div class="sel" data-selector="sat_voicing" data-label="VOICING" data-accent="#F2953A"></div></div>
           <div class="knob" data-knob="sat_drive" data-label="DRIVE" data-accent="#F2953A" data-size="50" data-fmt="db" data-def="6"></div>
@@ -124,7 +130,7 @@
 
       <!-- clipper -->
       <div class="panel clip" data-section="clip_on">
-        <div class="phead"><span class="ptitle warm">CLIPPER <button class="pwr" data-pwr="clip_on" title="Enable / disable">LIVE</button></span><span class="ptag" style="color:#8a7355;">ANTI-ALIASED · ADAA · 02</span></div>
+        <div class="phead"><span class="ptitle warm">CLIPPER <button class="pwr" data-pwr="clip_on" title="Enable / disable">LIVE</button> <button class="dsend" data-dsrc="clip" title="Show this stage in the Δ view">→Δ</button></span><span class="ptag" style="color:#8a7355;">ANTI-ALIASED · ADAA · 02</span></div>
         <div class="row between">
           <div class="knob" data-knob="clip_drive" data-label="DRIVE" data-accent="#FF7A1A" data-size="52" data-fmt="db" data-def="12"></div>
           <div class="knob" data-knob="clip_knee" data-label="KNEE" data-accent="#F2953A" data-size="52" data-fmt="knee" data-def="35"></div>
@@ -142,7 +148,7 @@
 
       <!-- limiter -->
       <div class="panel" data-section="lim_on">
-        <div class="phead"><span class="ptitle">LIMITER <button class="pwr" data-pwr="lim_on" title="Enable / disable">LIVE</button></span><span class="ptag">TRUE-PEAK BRICKWALL · 03</span></div>
+        <div class="phead"><span class="ptitle">LIMITER <button class="pwr" data-pwr="lim_on" title="Enable / disable">LIVE</button> <button class="dsend" data-dsrc="lim" title="Show this stage in the Δ view">→Δ</button></span><span class="ptag">TRUE-PEAK BRICKWALL · 03</span></div>
         <div class="row between">
           <div class="knob" data-knob="lim_threshold" data-label="THRESH" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-6"></div>
           <div class="knob" data-knob="lim_ceiling" data-label="CEILING" data-accent="#8FD9E6" data-size="52" data-fmt="db" data-def="-1"></div>
@@ -157,8 +163,8 @@
       <div class="viz scopewrap">
         <canvas id="scope"></canvas>
         <div class="tag" style="top:8px;left:10px;">OSCILLOSCOPE — LIVE · SYNCED</div>
-        <div class="tag" id="deltaToggle" style="top:8px;right:10px;left:auto;color:#C792EA;cursor:pointer;" title="Toggle Δ (out − in): the detail added/removed">Δ DELTA ●</div>
-        <div class="tag" style="bottom:8px;left:10px;"><span style="color:#9AD3DE;">━</span> IN&nbsp;&nbsp;<span style="color:#F2953A;">━</span> OUT&nbsp;&nbsp;<span style="color:#C792EA;">━</span> <span id="deltaGainLbl">Δ×3</span></div>
+        <div class="tag" id="deltaToggle" style="top:8px;right:10px;left:auto;color:#3DE1A0;cursor:pointer;" title="Toggle the Δ view on/off (scroll the scope to change Δ zoom)">Δ OFF</div>
+        <div class="tag" style="bottom:8px;left:10px;"><span class="leg" data-trace="in" style="color:#9AD3DE;">━ IN</span>&nbsp;&nbsp;<span class="leg" data-trace="out" style="color:#F2953A;">━ OUT</span>&nbsp;&nbsp;<span class="leg off" data-trace="delta" style="color:#3DE1A0;">━ <span id="deltaGainLbl">Δ×3</span></span></div>
         <div class="tag" id="ampToggle" style="bottom:8px;right:10px;left:auto;cursor:pointer;color:#8FD9E6;" title="Toggle linear / dB amplitude axis">LIN</div>
       </div>
       <div class="lowrow">
@@ -358,7 +364,7 @@ const Wave = (() => {
     const bin = atob(m.data), bytes = new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
     const f = new Float32Array(bytes.buffer), n = m.n|0;
-    latest = { inW:f.subarray(0,n), outW:f.subarray(n,2*n), sr:m.sr||48000, n };
+    latest = { inW:f.subarray(0,n), outW:f.subarray(n,2*n), clipW:f.subarray(2*n,3*n), sr:m.sr||48000, n };
     WAVE = latest;
   }
   if(window.__JUCE__ && window.__JUCE__.backend)
@@ -438,9 +444,19 @@ function warp(s){
 const SPEC = { ceilDb:0, bands:44, range:72 };   // harmonics display: adjustable dB ceiling
 {
   const dt=document.getElementById("deltaToggle"), gl=document.getElementById("deltaGainLbl");
-  if(dt) dt.addEventListener("click",()=>{ SCOPE.delta=!SCOPE.delta; dt.style.opacity=SCOPE.delta?1:0.4; dt.textContent=SCOPE.delta?"Δ DELTA ●":"Δ DELTA ○"; });
+  const legs=[...document.querySelectorAll(".leg")], sends=[...document.querySelectorAll(".dsend")];
+  function syncDelta(){
+    if(dt) dt.textContent = SCOPE.delta ? ("Δ "+SCOPE.deltaSrc.toUpperCase()) : "Δ OFF";
+    legs.forEach(l=>{ const t=l.dataset.trace; const on = t==='in'?SCOPE.showIn : t==='out'?SCOPE.showOut : SCOPE.delta; l.classList.toggle("off",!on); });
+    sends.forEach(s=> s.classList.toggle("on", SCOPE.delta && s.dataset.dsrc===SCOPE.deltaSrc));
+  }
+  if(dt) dt.addEventListener("click",()=>{ SCOPE.delta=!SCOPE.delta; syncDelta(); });
+  legs.forEach(l=>l.addEventListener("click",()=>{ const t=l.dataset.trace;
+    if(t==='in') SCOPE.showIn=!SCOPE.showIn; else if(t==='out') SCOPE.showOut=!SCOPE.showOut; else SCOPE.delta=!SCOPE.delta; syncDelta(); }));
+  sends.forEach(s=>s.addEventListener("click",()=>{ SCOPE.deltaSrc=s.dataset.dsrc; SCOPE.delta=true; syncDelta(); }));
   const sc=document.getElementById("scope");
   if(sc) sc.addEventListener("wheel",e=>{ e.preventDefault(); SCOPE.deltaGain=clampv(SCOPE.deltaGain+(e.deltaY<0?1:-1),1,32); if(gl)gl.textContent="Δ×"+SCOPE.deltaGain; },{passive:false});
+  syncDelta();
   // Harmonics dB-ceiling: drag the CEIL label (or scroll the spectrum) vertically.
   const sceil=document.getElementById("specCeil"), spec=document.getElementById("spectrum");
   const setCeil=v=>{ SPEC.ceilDb=clampv(v,-24,24); if(sceil)sceil.textContent="CEIL "+(SPEC.ceilDb>0?"+":"")+SPEC.ceilDb+" dB"; };
@@ -500,8 +516,9 @@ function drawClipHighlight(ctx,w,Y,inW,t0,span,ceil){
   ctx.restore();
 }
 
-// Scope config.
-const SCOPE = { delta:true, deltaGain:3 };
+// Scope config. Δ is OFF by default; deltaSrc picks WHICH stage's effect the Δ shows.
+const SCOPE = { showIn:true, showOut:true, delta:false, deltaGain:3, deltaSrc:'clip' };
+const DELTA_COL = "#3DE1A0";   // mint (was purple)
 function clampv(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
 
 // STEADY scope via CROSS-CORRELATION FRAME-LOCK (like a real DSO, not a zero-cross trigger).
@@ -522,7 +539,7 @@ function drawScope(){ const cv=document.getElementById("scope"),c=prep(cv);if(!c
   ctx.strokeStyle="rgba(242,149,58,0.35)";[lc,-lc].forEach(v=>{ctx.beginPath();ctx.moveTo(0,Y(v));ctx.lineTo(w,Y(v));ctx.stroke();});
   ctx.strokeStyle="rgba(143,217,230,0.18)";[cc,-cc].forEach(v=>{ctx.beginPath();ctx.moveTo(0,Y(v));ctx.lineTo(w,Y(v));ctx.stroke();});
   ctx.setLineDash([]);
-  const WAVE=Wave.latest(); if(!WAVE)return; const {inW,outW}=WAVE; const N=inW.length; if(N<8)return;
+  const WAVE=Wave.latest(); if(!WAVE)return; const {inW,outW,clipW}=WAVE; const N=inW.length; if(N<8)return;
   const span=Math.min(N-1,2048), maxT0=N-1-span, refLen=(span/SCOPE_DS)|0;
   // energy gate — on near-silence, hold t0=0 (don't chase noise)
   let energy=0; for(let i=0;i<N;i+=8) energy+=inW[i]*inW[i];
@@ -539,21 +556,26 @@ function drawScope(){ const cv=document.getElementById("scope"),c=prep(cv);if(!c
 
   ctx.save(); ctx.beginPath(); ctx.rect(0,0,w,h); ctx.clip();   // nothing escapes the frame
   const bp=bypassState.getValue();
-  if(!bp) drawClipHighlight(ctx,w,Y,inW,t0,span,cc);
-  drawWave(ctx,w,Y,inW, t0,span,{color:"rgba(154,211,222,0.5)",width:1.4,glow:0});  // dry (ghost)
-  drawWave(ctx,w,Y,outW,t0,span,{color:"#FF8A2A",width:2,glow:7});                  // wet
-  if(SCOPE.delta && !bp) drawDelta(ctx,w,Y,inW,outW,t0,span,SCOPE.deltaGain);       // Δ = detail
+  if(SCOPE.showIn && !bp) drawClipHighlight(ctx,w,Y,inW,t0,span,cc);
+  if(SCOPE.showIn)  drawWave(ctx,w,Y,inW, t0,span,{color:"rgba(154,211,222,0.5)",width:1.4,glow:0});  // dry
+  if(SCOPE.showOut) drawWave(ctx,w,Y,outW,t0,span,{color:"#FF8A2A",width:2,glow:7});                  // wet
+  if(SCOPE.delta && !bp){
+    // Δ = the SELECTED stage's effect. clip: (post sat+clip) vs input; lim: out vs (pre-limiter);
+    // chain: out vs input. Level-matched so gain/level differences don't swamp the shape.
+    const src = SCOPE.deltaSrc==='lim' ? [outW,clipW] : SCOPE.deltaSrc==='chain' ? [outW,inW] : [clipW,inW];
+    drawDelta(ctx,w,Y,src[0],src[1],t0,span,SCOPE.deltaGain);
+  }
   ctx.restore();
 }
-// Δ trace: LEVEL-MATCHED (out − in·scale)·gain — the SHAPE difference (the fold), not the level
-// difference from output-gain/limiter. So it stays small and hugs the peaks where the fold lives.
-function drawDelta(ctx,w,Y,inW,outW,t0,span,gain){
-  let pin=1e-6,pout=1e-6;
-  for(let i=0;i<span;i++){ const ai=Math.abs(inW[t0+i]),ao=Math.abs(outW[t0+i]); if(ai>pin)pin=ai; if(ao>pout)pout=ao; }
-  const sc=clampv(pout/pin,0.05,20);   // bring dry down to the wet's level
-  const d=new Float32Array(span); for(let i=0;i<span;i++) d[i]=(outW[t0+i]-inW[t0+i]*sc)*gain;
+// Δ trace: LEVEL-MATCHED (a − b·scale)·gain — the SHAPE difference a stage introduced, not the
+// level difference from gain/limiter. Stays small and hugs where the change lives (the fold).
+function drawDelta(ctx,w,Y,a,b,t0,span,gain){
+  let pa=1e-6,pb=1e-6;
+  for(let i=0;i<span;i++){ const va=Math.abs(a[t0+i]),vb=Math.abs(b[t0+i]); if(va>pa)pa=va; if(vb>pb)pb=vb; }
+  const sc=clampv(pa/pb,0.05,20);   // bring b to a's level
+  const d=new Float32Array(span); for(let i=0;i<span;i++) d[i]=(a[t0+i]-b[t0+i]*sc)*gain;
   const rec=reconstruct(d,LANCZOS,0,span),M=rec.length; if(M<1)return;
-  ctx.save();ctx.strokeStyle="#C792EA";ctx.lineWidth=1.4;ctx.shadowBlur=5;ctx.shadowColor="rgba(199,146,234,0.6)";
+  ctx.save();ctx.strokeStyle=DELTA_COL;ctx.lineWidth=1.4;ctx.shadowBlur=5;ctx.shadowColor="rgba(61,225,160,0.55)";
   ctx.beginPath(); for(let k=0;k<M;k++){ const x=k/M*w,y=Y(rec[k]); k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
   ctx.stroke();ctx.restore();
 }

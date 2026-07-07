@@ -58,10 +58,11 @@ public:
     static constexpr int kScopeMask = kScopeCap - 1;
     float inRing[kScopeCap]  {};
     float outRing[kScopeCap] {};
+    float clipRing[kScopeCap] {};   // clip-stage output (post sat+clip, pre-limiter), latency-aligned
     std::atomic<uint32_t> scopeWrite { 0 };
     double currentSampleRate { 48000.0 };
-    // Copy the most recent n samples of in/out into caller buffers (message thread).
-    void readScope (float* inDst, float* outDst, int n) const noexcept;
+    // Copy the most recent n samples of in/out/clip into caller buffers (message thread).
+    void readScope (float* inDst, float* outDst, float* clipDst, int n) const noexcept;
 
     // ADAA2 hard clip introduces exactly 1 sample of group delay (measured).
     static constexpr int kLatencySamples = 1;
@@ -138,6 +139,11 @@ private:
     std::vector<float> preTapDelay;
     int preTapMask = 0;   // (pow2 size) - 1
     int preTapPos  = 0;   // write index
+
+    // Delays the clip-stage tap (captured pre-limiter, ch0) by the limiter latency so clipRing
+    // aligns with inRing/outRing (post-everything) on the scope timeline.
+    std::vector<float> clipTapDelay;
+    int clipTapMask = 0, clipTapPos = 0;
 
     void runClip (float* data, int numSamples, int ch, float driveDb, float kneeN, float ceilDb,
                   float orderN, float detailN, float detailFreqHz) noexcept;
