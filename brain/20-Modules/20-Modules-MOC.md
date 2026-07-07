@@ -3,7 +3,7 @@ title: Modules MOC
 type: moc
 tags: [moc, module]
 status: living
-updated: 2026-07-02
+updated: 2026-07-07
 ---
 
 # 🧩 Modules MOC
@@ -12,10 +12,10 @@ One deep note per subsystem. Create each from [[Module-Note-Template]] as it's b
 
 | Note | Subsystem | Status |
 |--------------|-----------|--------|
-| [[21-Clip-Engine]] | ADAA2 hard-clip engine + Drive (M0) | **built (M0)** |
-| `22-Saturator` | Faust saturator (tube/tape/transformer, bias, dry/wet, DC blocker) | not started (M3) |
-| `23-Limiter` | Lookahead limiter (limiter_lad / lamb-style), true-peak | not started (M2) |
-| `24-Oversampling-and-Latency` | oversampling + true-peak detector + unified latency reporting | not started (M1/M2) |
+| [[21-Clip-Engine]] | ADAA2 clip + Drive + detail fold-back | **built** |
+| [[22-Limiter]] | Hand-written true-peak lookahead brickwall limiter | **built (2026-07-07)** |
+| `23-Saturator` | C++ waveshaper (tube/tape/xfmr, bias, dry/wet, DC blocker) — currently `runSat` in the processor, not yet its own note | **built, note pending** |
+| `24-Oversampling-and-Latency` | oversampling + true-peak detector + unified latency reporting | note pending |
 | [[25-WebView-GUI]] | JUCE 8 WebView UI, all params bound via relays | **built (2026-07-03)** |
 
 > Create a note when the subsystem gets real code — not before. Each links back here and to its architecture/reference notes.
