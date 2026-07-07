@@ -74,33 +74,32 @@ def main():
         if not lat_ok:
             failures.append(f"latency={latency} (expected 1)")
 
-        # --- Detail-preserving fold-back ---
-        # The technique restores HF from TRANSIENTS (broadband residual), not from steady-state
-        # harmonic distortion of a tone (on a pure sine it collapses to out = x - LP(residual),
-        # which *cleans up* upper harmonics). So probe with an IMPULSE — the canonical transient
-        # the clipper flattens. Assert:
+        # --- Detail-preserving FOLDBACK ---
+        # The clipper FOLDS peaks (out = clip - Detail*HF(residual)) instead of flattening them, so a
+        # tone driven hard into a flat plateau gets that plateau folded away. Assert:
         #  (a) Detail=0 reproduces the plain clip bit-exact (adding the params changed nothing), and
-        #  (b) Detail>0 restores HF energy above the split that the clip removed from the transient.
-        print("M0 gate - detail-preserving fold-back:")
-        DF = 4000.0
-        base = run(args.runner, tmp, signal="impulse", engine="adaa", amp=1.0, drive=12,
-                   n=1024, tag="d_base")                                    # no --detail
-        d0   = run(args.runner, tmp, signal="impulse", engine="adaa", amp=1.0, drive=12,
-                   n=1024, tag="d0", detail=0.0, detail_freq=DF)
-        d1   = run(args.runner, tmp, signal="impulse", engine="adaa", amp=1.0, drive=12,
-                   n=1024, tag="d1", detail=1.0, detail_freq=DF)
+        #  (b) Detail>0 with a low split un-flattens the clip: far fewer samples pinned at the ceiling.
+        print("M0 gate - detail-preserving foldback:")
+        DF = 40.0                                     # low split -> fold most of the excess
+        f0f = coherent_freq(220, FS, N)
+        # 6 dB drive (2x): |x|>ceiling for ~2/3 of the cycle, and the fold (2*ceil-x) stays in range.
+        base = run(args.runner, tmp, signal="sine", engine="adaa", f0=f0f, amp=1.0, drive=6,
+                   tag="d_base")                                             # no --detail (flat clip)
+        d0   = run(args.runner, tmp, signal="sine", engine="adaa", f0=f0f, amp=1.0, drive=6,
+                   tag="d0", detail=0.0, detail_freq=DF)
+        d1   = run(args.runner, tmp, signal="sine", engine="adaa", f0=f0f, amp=1.0, drive=6,
+                   tag="d1", detail=1.0, detail_freq=DF)
         backcompat = float(np.max(np.abs(base - d0)))
-        e0 = band_energy(d0, FS, DF * 1.25, 20000.0)
-        e1 = band_energy(d1, FS, DF * 1.25, 20000.0)
-        ratio = e1 / max(e0, 1e-30)
+        pinned0 = int(np.sum(np.abs(d0) > 0.9))       # samples pinned near the ±1 clip ceiling
+        pinned1 = int(np.sum(np.abs(d1) > 0.9))
         bc_ok = backcompat == 0.0
-        hf_ok = ratio > 1.3
+        fold_ok = pinned0 > N * 0.1 and pinned1 < pinned0 * 0.5   # d0 has a real plateau; d1 folds it away
         print(f"  Detail=0 vs plain clip: max|diff|={backcompat:.2e}  [{'ok' if bc_ok else 'FAIL'}]")
-        print(f"  transient HF >{DF*1.25:.0f}Hz: Detail=0 -> Detail=1 = {ratio:5.2f}x  [{'ok' if hf_ok else 'FAIL'}]")
+        print(f"  plateau samples (|x|>0.9): Detail=0 -> {pinned0}, Detail=1 -> {pinned1}  [{'ok' if fold_ok else 'FAIL'}]")
         if not bc_ok:
             failures.append(f"detail=0 not bit-exact vs plain clip (max|diff|={backcompat:.2e})")
-        if not hf_ok:
-            failures.append(f"detail fold-back HF ratio only {ratio:.2f}x (expected > 1.3)")
+        if not fold_ok:
+            failures.append(f"foldback did not un-flatten the clip (pinned {pinned0} -> {pinned1})")
 
     if failures:
         print("\nM0 GATE FAILED:", file=sys.stderr)

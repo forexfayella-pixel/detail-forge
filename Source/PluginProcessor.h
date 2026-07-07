@@ -123,6 +123,14 @@ private:
     // Per-channel one-pole DC blocker state (output hygiene).
     std::vector<float> dcX1, dcY1;
 
+    // --- Parameter smoothing (anti-zipper) ---
+    // in/out gain ramp per-sample via applyGainRamp (prev -> current linear gain).
+    float prevInGain = 1.0f, prevOutGain = 1.0f;
+    // Saturator drive/bias/mix ramped per-sample inside runSat (prev -> target across the block).
+    float prevSatG = 1.0f, prevSatB = 0.0f, prevSatMix = 1.0f;
+    // Clip Faust params: per-block smoothing (the engine reads its zone once per compute()).
+    juce::SmoothedValue<float> smClipDrive, smClipKnee, smClipCeil, smClipDetail, smClipFreq;
+
     // Pre-tap delay line (channel 0): delays the captured dry input by the plugin's
     // current internal latency L so the scope's dry (inRing) and wet (outRing) taps are
     // sample-aligned. Sized to the max possible L; L is applied as a movable read tap, so
@@ -133,7 +141,8 @@ private:
 
     void runClip (float* data, int numSamples, int ch, float driveDb, float kneeN, float ceilDb,
                   float orderN, float detailN, float detailFreqHz) noexcept;
-    void runSat  (float* data, int numSamples, int voicing, float g, float bias, float mix) noexcept;
+    void runSat  (float* data, int numSamples, int voicing,
+                  float g0, float g1, float bias0, float bias1, float mix0, float mix1) noexcept;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DetailForgeProcessor)
 };

@@ -88,7 +88,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout DetailForgeProcessor::create
     // freq is the HF split point. Log-skewed so the 1-3 kHz sweet spot has resolution.
     p.add (std::make_unique<APF>(juce::ParameterID{"clip_detail",1}, "Clip Detail", Range{0.f,200.f,0.1f}, 0.f, dB("%")));
     {
-        Range fr{300.f, 12000.f, 1.f}; fr.setSkewForCentre (3000.f);
+        Range fr{20.f, 12000.f, 1.f}; fr.setSkewForCentre (1000.f);   // low = fold more of the peak
         p.add (std::make_unique<APF>(juce::ParameterID{"clip_detail_freq",1}, "Clip Detail Freq", fr, 3000.f, dB("Hz")));
     }
     p.add (std::make_unique<APC>(juce::ParameterID{"oversampling",1}, "Oversampling",
@@ -164,6 +164,22 @@ void DetailForgeProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     dcX1.assign ((size_t) nch, 0.0f);
     dcY1.assign ((size_t) nch, 0.0f);
 
+    // Param smoothing: ~20 ms ramps. Seed each clip smoother at its current value so load is silent.
+    const double rampS = 0.02;
+    auto seed = [&] (juce::SmoothedValue<float>& s, const char* id, float def) {
+        s.reset (sampleRate, rampS);
+        auto* p = apvts.getRawParameterValue (id);
+        s.setCurrentAndTargetValue (p != nullptr ? p->load() : def);
+    };
+    seed (smClipDrive, "clip_drive", 2.0f);
+    seed (smClipKnee,  "clip_knee", 35.0f);
+    seed (smClipCeil,  "clip_ceiling", -3.0f);
+    seed (smClipDetail,"clip_detail", 0.0f);
+    seed (smClipFreq,  "clip_detail_freq", 3000.0f);
+    prevInGain = juce::Decibels::decibelsToGain (inGain  != nullptr ? inGain->load()  : 0.0f);
+    prevOutGain= juce::Decibels::decibelsToGain (outGain != nullptr ? outGain->load() : 0.0f);
+    prevSatG   = 1.0f; prevSatB = 0.0f; prevSatMix = 1.0f;
+
     // Size the pre-tap delay line to the largest internal latency across all OS factors
     // (integer latency is guaranteed — oversamplers use useIntegerLatency=true), rounded
     // up to a power of two so the read tap can wrap with a mask.
@@ -220,10 +236,11 @@ void DetailForgeProcessor::runClip (float* data, int numSamples, int ch,
 // removes the DC it introduces (the output DC blocker is a second safety net).
 // Divide by f(g) so peaks stay ~bounded to unity before the clipper.
 // Runs inside the oversampled region, so oversampling anti-aliases it.
+// g/bias/mix are ramped per-sample from *0 (previous block) to *1 (this block) to avoid zipper on
+// automation. fBias/norm are recomputed per sample since g/bias move within the block.
 void DetailForgeProcessor::runSat (float* data, int numSamples, int voicing,
-                                   float g, float bias, float mix) noexcept
+                                   float g0, float g1, float bias0, float bias1, float mix0, float mix1) noexcept
 {
-    // Nothing to do at unity drive with no bias and no wet signal.
     auto f = [voicing] (float u) noexcept -> float
     {
         switch (voicing)
@@ -234,15 +251,18 @@ void DetailForgeProcessor::runSat (float* data, int numSamples, int voicing,
         }
     };
 
-    const float fBias = f (bias);
-    const float norm  = 1.0f / juce::jmax (1.0e-4f, f (g));   // peak-normalise
-    const float dry   = 1.0f - mix;
-
+    const float inv = numSamples > 1 ? 1.0f / (float) (numSamples - 1) : 0.0f;
     for (int i = 0; i < numSamples; ++i)
     {
+        const float t    = (float) i * inv;
+        const float g    = g0    + (g1    - g0)    * t;
+        const float bias = bias0 + (bias1 - bias0) * t;
+        const float mix  = mix0  + (mix1  - mix0)  * t;
+        const float fBias = f (bias);
+        const float norm  = 1.0f / juce::jmax (1.0e-4f, f (g));   // peak-normalise
         const float x   = data[i];
         const float wet = (f (g * x + bias) - fBias) * norm;
-        data[i] = dry * x + mix * wet;
+        data[i] = (1.0f - mix) * x + mix * wet;
     }
 }
 
@@ -329,12 +349,18 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
 
     const float ig = juce::Decibels::decibelsToGain (inGain  != nullptr ? inGain->load()  : 0.0f);
     const float og = juce::Decibels::decibelsToGain (outGain != nullptr ? outGain->load() : 0.0f);
-    const float driveDb = clipDrive   != nullptr ? clipDrive->load()          : 0.0f;
-    const float kneeN   = clipKnee    != nullptr ? clipKnee->load() * 0.01f    : 0.35f; // % -> 0..1
-    const float ceilDb  = clipCeiling != nullptr ? clipCeiling->load()         : -3.0f;
-    const float orderN  = adaaParam   != nullptr ? adaaParam->load()           : 2.0f;  // 0/1/2
-    const float detailN = clipDetail  != nullptr ? clipDetail->load() * 0.01f  : 0.0f;  // % -> 0..2
-    const float detailF = clipDetailF != nullptr ? clipDetailF->load()         : 3000.f; // Hz
+    // Clip params: per-block smoothed (the Faust engine reads its zone once per compute()).
+    smClipDrive.setTargetValue (clipDrive   != nullptr ? clipDrive->load()   : 2.0f);
+    smClipKnee.setTargetValue  (clipKnee    != nullptr ? clipKnee->load()    : 35.0f);
+    smClipCeil.setTargetValue  (clipCeiling != nullptr ? clipCeiling->load() : -3.0f);
+    smClipDetail.setTargetValue(clipDetail  != nullptr ? clipDetail->load()  : 0.0f);
+    smClipFreq.setTargetValue  (clipDetailF != nullptr ? clipDetailF->load() : 3000.0f);
+    const float driveDb = smClipDrive.skip (numSamples);
+    const float kneeN   = smClipKnee.skip (numSamples) * 0.01f;   // % -> 0..1
+    const float ceilDb  = smClipCeil.skip (numSamples);
+    const float orderN  = adaaParam   != nullptr ? adaaParam->load()          : 2.0f;  // 0/1/2 (not smoothed — mode select)
+    const float detailN = smClipDetail.skip (numSamples) * 0.01f; // % -> 0..2
+    const float detailF = smClipFreq.skip (numSamples);           // Hz
     const int   osIndex = osParam     != nullptr ? (int) osParam->load()       : 0;     // 0..4
 
     // The clip engine runs at the oversampled rate but was init()'d at the base rate, so
@@ -353,8 +379,8 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     const bool  clipEnabled = clipOn == nullptr || *clipOn > 0.5f;
     const bool  satActive = satEnabled && satMixN > 0.0005f && (satG > 1.0001f || satB > 1.0e-4f);
 
-    if (ig != 1.0f)
-        buffer.applyGain (ig);
+    buffer.applyGainRamp (0, numSamples, prevInGain, ig);   // per-sample ramp (anti-zipper)
+    prevInGain = ig;
 
     int reportedLatency = kLatencySamples;
     if (osIndex <= 0 || osIndex > (int) oversamplers.size())
@@ -363,7 +389,7 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         for (int c = 0; c < numChannels; ++c)
         {
             auto* d = buffer.getWritePointer (c);
-            if (satActive)  runSat (d, numSamples, satVoice, satG, satB, satMixN);
+            if (satActive)  runSat (d, numSamples, satVoice, prevSatG, satG, prevSatB, satB, prevSatMix, satMixN);
             if (clipEnabled) runClip (d, numSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
         }
     }
@@ -378,12 +404,16 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         for (int c = 0; c < numChannels; ++c)
         {
             auto* d = up.getChannelPointer ((size_t) c);
-            if (satActive)  runSat (d, osSamples, satVoice, satG, satB, satMixN);
+            if (satActive)  runSat (d, osSamples, satVoice, prevSatG, satG, prevSatB, satB, prevSatMix, satMixN);
             if (clipEnabled) runClip (d, osSamples, c, driveDb, kneeN, ceilDb, orderN, detailN, detailFhz);
         }
         os.processSamplesDown (sub);
         reportedLatency = (int) std::lround (os.getLatencyInSamples());
     }
+
+    // Advance the saturator ramp endpoints for the next block (track target even when inactive so
+    // continuous automation stays smooth; a manual enable is an intentional step).
+    prevSatG = satG; prevSatB = satB; prevSatMix = satMixN;
 
     // DC blocker (one-pole highpass, ~a few Hz) — output hygiene.
     for (int c = 0; c < numChannels; ++c)
@@ -399,8 +429,8 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         dcX1[(size_t) c] = x1; dcY1[(size_t) c] = y1;
     }
 
-    if (og != 1.0f)
-        buffer.applyGain (og);
+    buffer.applyGainRamp (0, numSamples, prevOutGain, og);   // per-sample ramp (anti-zipper)
+    prevOutGain = og;
 
     // Stage 3 — true-peak lookahead limiter (final ceiling), at base rate. Its lookahead adds to
     // the reported latency; when disabled it adds none and the GR meter reads 0.
@@ -474,7 +504,7 @@ void DetailForgeProcessor::computeTransferCurve (std::vector<float>& ys, int N)
     for (int i = 0; i < N; ++i) buf[(size_t) (W + i)] = -1.0f + 2.0f * (float) i / (float) (N - 1);
 
     if (satOn)
-        runSat (buf.data(), W + N, voice, sG, sB, sMix);
+        runSat (buf.data(), W + N, voice, sG, sG, sB, sB, sMix, sMix);   // constant params for the probe
 
     if (pDrive)   *pDrive   = driveDb;
     if (pKnee)    *pKnee    = kneeN;

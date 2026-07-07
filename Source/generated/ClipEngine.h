@@ -187,7 +187,7 @@ class ClipEngine : public dsp {
 		ui_interface->addHorizontalSlider("Detail", &fHslider4, FAUSTFLOAT(0.0f), FAUSTFLOAT(0.0f), FAUSTFLOAT(2.0f), FAUSTFLOAT(0.001f));
 		ui_interface->declare(&fHslider0, "scale", "log");
 		ui_interface->declare(&fHslider0, "unit", "Hz");
-		ui_interface->addHorizontalSlider("DetailFreq", &fHslider0, FAUSTFLOAT(3e+03f), FAUSTFLOAT(3e+02f), FAUSTFLOAT(1.2e+04f), FAUSTFLOAT(1.0f));
+		ui_interface->addHorizontalSlider("DetailFreq", &fHslider0, FAUSTFLOAT(3e+03f), FAUSTFLOAT(2e+01f), FAUSTFLOAT(1.2e+04f), FAUSTFLOAT(1.0f));
 		ui_interface->declare(&fHslider2, "unit", "dB");
 		ui_interface->addHorizontalSlider("Drive", &fHslider2, FAUSTFLOAT(2.0f), FAUSTFLOAT(0.0f), FAUSTFLOAT(36.0f), FAUSTFLOAT(0.01f));
 		ui_interface->addHorizontalSlider("Knee", &fHslider3, FAUSTFLOAT(0.35f), FAUSTFLOAT(0.0f), FAUSTFLOAT(1.0f), FAUSTFLOAT(0.001f));
@@ -275,7 +275,7 @@ class ClipEngine : public dsp {
 			float fTemp57 = fSlow8 * (fSlow13 * ((iSlow6) ? std::max<float>(-1.0f, std::min<float>(1.0f, fTemp1)) : ((iSlow7) ? ((iTemp43) ? std::max<float>(-1.0f, std::min<float>(1.0f, fTemp45)) : fTemp56 / fTemp27) : ((iTemp29) ? 0.5f * std::max<float>(-1.0f, std::min<float>(1.0f, fTemp40)) : (fSlow10 * fTemp0 * fTemp56 + fTemp54 - ((iTemp55) ? 0.33333334f * fTemp37 : fTemp48 * (fTemp34 + -0.16666667f))) / fTemp28) + ((iTemp2) ? 0.5f * std::max<float>(-1.0f, std::min<float>(1.0f, fTemp24)) : (fTemp54 + fVec0[2] * (((iTemp49) ? fTemp8 : fVec0[2] * fTemp50 + -0.5f) - fTemp53) - ((iTemp49) ? 0.33333334f * fTemp11 : fTemp50 * (fTemp8 + -0.16666667f))) / fTemp3))) + fSlow12 * ((iSlow6) ? ((iTemp31) ? fSlow11 * fTemp0 : ((iTemp32) ? 0.33333334f * fTemp48 * (3.0f - ClipEngine_faustpower2_f(2.0f - 3.0f * fTemp30)) : fTemp48)) : ((iSlow7) ? ((iTemp43) ? ((fTemp46 < 0.33333334f) ? fTemp44 : ((fTemp46 < 0.6666667f) ? 0.33333334f * fTemp47 * (3.0f - ClipEngine_faustpower2_f(2.0f - 3.0f * fTemp46)) : fTemp47)) : fTemp38 / fTemp27) : ((iTemp29) ? 0.5f * ((fTemp41 < 0.33333334f) ? 0.6666667f * fTemp39 : ((fTemp41 < 0.6666667f) ? 0.33333334f * fTemp42 * (3.0f - ClipEngine_faustpower2_f(2.0f - 3.0f * fTemp41)) : fTemp42)) : (fSlow10 * fTemp0 * fTemp38 + fTemp21 - ((iTemp31) ? 0.6666667f * fTemp37 : ((iTemp32) ? fTemp36 * (0.0030864198f - (0.16666667f * fTemp33 + 0.75f * ClipEngine_faustpower4_f(fTemp1))) + 1.3333334f * fTemp37 : fTemp36 * (fTemp34 + -0.046296295f)))) / fTemp28) + ((iTemp2) ? 0.5f * ((fTemp25 < 0.33333334f) ? 0.6666667f * fTemp23 : ((fTemp25 < 0.6666667f) ? 0.33333334f * fTemp26 * (3.0f - ClipEngine_faustpower2_f(2.0f - 3.0f * fTemp25)) : fTemp26)) : (fTemp21 + fVec0[2] * (((iTemp5) ? fTemp7 : ((iTemp6) ? 2.0f * fTemp7 + (0.037037037f - (0.33333334f * fTemp4 + ClipEngine_faustpower3_f(fTemp4))) : fTemp4 + -0.25925925f)) - fTemp16) - ((iTemp5) ? 0.6666667f * fTemp11 : ((iTemp6) ? fTemp10 * (0.0030864198f - (0.16666667f * fTemp7 + 0.75f * ClipEngine_faustpower4_f(fVec0[2]))) + 1.3333334f * fTemp11 : fTemp10 * (fTemp8 + -0.046296295f)))) / fTemp3))));
 			float fTemp58 = fSlow9 * fTemp0;
 			fRec0[0] = fTemp58 - (fTemp57 + fSlow4 * (fSlow3 * fRec0[2] + fSlow1 * fRec0[1]));
-			output0[i0] = static_cast<FAUSTFLOAT>(fTemp57 + fSlow14 * (fTemp58 - (fTemp57 + fSlow4 * (fRec0[2] + fRec0[0] + 2.0f * fRec0[1]))));
+			output0[i0] = static_cast<FAUSTFLOAT>(fTemp57 - fSlow14 * (fTemp58 - (fTemp57 + fSlow4 * (fRec0[2] + fRec0[0] + 2.0f * fRec0[1]))));
 			fVec0[2] = fVec0[1];
 			fVec0[1] = fVec0[0];
 			fRec0[2] = fRec0[1];

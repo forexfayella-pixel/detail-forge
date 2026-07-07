@@ -43,11 +43,12 @@ public:
     void setParams (float thrDb, float ceilDb, float relMs, float lookMs, bool force = false)
     {
         thrDb_ = thrDb; ceilDb_ = ceilDb; relMs_ = relMs; lookMs_ = lookMs;
-        thrLin = db2lin (thrDb);
         const float margin = db2lin (-0.2f);                // safety for residual inter-sample detector error
-        ceilLin = db2lin (ceilDb) * margin;
-        makeup  = ceilLin / std::max (thrLin, 1.0e-6f);
+        thrTgt  = db2lin (thrDb);                           // targets; thrLin/ceilLin ramp toward these
+        ceilTgt = db2lin (ceilDb) * margin;
         relCoef = 1.0f - std::exp (-1.0f / std::max (1.0f, (relMs / 1000.0f) * (float) sr));
+        smCoef  = 1.0f - std::exp (-1.0f / std::max (1.0f, 0.005f * (float) sr));   // 5 ms param smoothing
+        if (force) { thrLin = thrTgt; ceilLin = ceilTgt; }
         int look = (int) std::lround ((double) juceClamp (lookMs, 0.0f, kMaxLookaheadMs) / 1000.0 * sr);
         int newL = std::min (maxL, look + detDelay + 1);
         // Window change: just update L. pushMin's own front-eviction adapts to the new window on the
@@ -62,6 +63,7 @@ public:
         for (auto& d : detBuf) std::fill (d.begin(), d.end(), 0.0f);
         detPos = 0; wpos = 0; nowIdx = 0; dqHead = 0; dqSize = 0;
         gState = 1.0f; grDb = 0.0f;
+        thrLin = thrTgt; ceilLin = ceilTgt;   // start settled
     }
 
     int   getLatencySamples()    const noexcept { return L; }
@@ -93,6 +95,12 @@ public:
                     tp = std::max (tp, std::fabs (acc));
                 }
             detPos = (detPos + 1) % protoLen;
+
+            // 2b. smooth threshold/ceiling toward target (anti-zipper); derive makeup from the
+            //     smoothed values so output peak stays == ceiling even mid-ramp.
+            thrLin  += (thrTgt  - thrLin)  * smCoef;
+            ceilLin += (ceilTgt - ceilLin) * smCoef;
+            const float makeup = ceilLin / std::max (thrLin, 1.0e-6f);
 
             // 3. required gain to pull the true-peak down to threshold
             const float gr = (tp > thrLin) ? (thrLin / tp) : 1.0f;
@@ -167,7 +175,7 @@ private:
 
     double sr = 48000.0; int nch = 2;
     float thrDb_ = -6.0f, ceilDb_ = -1.0f, relMs_ = 60.0f, lookMs_ = 1.5f;
-    float thrLin = 0.5f, ceilLin = 0.88f, makeup = 1.0f, relCoef = 0.01f;
+    float thrLin = 0.5f, ceilLin = 0.88f, thrTgt = 0.5f, ceilTgt = 0.88f, relCoef = 0.01f, smCoef = 0.02f;
     int   L = 1, maxL = 1, ring = 2, detDelay = 0, protoLen = 0, tapsPerPhase = 8;
 
     std::vector<std::vector<float>> phase;   // [OS][tapsPerPhase]

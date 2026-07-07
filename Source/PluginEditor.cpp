@@ -109,7 +109,8 @@ void DetailForgeEditor::timerCallback()
     webView->emitEventIfBrowserIsVisible ("meters", juce::var (o.get()));
 
     // Live scope waveform: pack the last N in/out samples and ship as base64.
-    constexpr int N = 1024;
+    // 4096 (~85 ms @48k) so low notes (a B0 saw's ~32 ms period) fit and can be sync-locked.
+    constexpr int N = 4096;
     std::array<float, 2 * N> packed;
     processorRef.readScope (packed.data(), packed.data() + N, N);
     auto b64 = juce::Base64::toBase64 (packed.data(), sizeof (float) * packed.size());
