@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write          # needed to publish the installer to a GitHub Release on a tag
 
 jobs:
   build-macos:
@@ -119,18 +119,51 @@ jobs:
                 --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
           xcrun stapler staple "dist/DetailForge-$VERSION.pkg"
 
-      # ---------- fallback: unsigned zips so the build is still usable for testing ----------
-      - name: Package unsigned artifacts
+      # ---------- fallback: UNSIGNED installer (.pkg) so the build is still usable for testing ----------
+      # No Apple certs → the .pkg is unsigned. macOS Gatekeeper will warn; right-click → Open to bypass.
+      - name: Build unsigned .pkg
         if: steps.sign.outputs.have != 'true'
         env:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          mkdir -p dist
-          ditto -c -k --keepParent "${{ steps.art.outputs.vst3 }}" "dist/DetailForge-$VERSION-macOS-VST3-unsigned.zip"
-          ditto -c -k --keepParent "${{ steps.art.outputs.au }}"   "dist/DetailForge-$VERSION-macOS-AU-unsigned.zip"
+          mkdir -p dist pkgroot/Library/Audio/Plug-Ins/VST3 pkgroot/Library/Audio/Plug-Ins/Components
+          cp -R "${{ steps.art.outputs.vst3 }}" pkgroot/Library/Audio/Plug-Ins/VST3/
+          cp -R "${{ steps.art.outputs.au }}"   pkgroot/Library/Audio/Plug-Ins/Components/
+          pkgbuild --root pkgroot --identifier com.fayella.detailforge --version "$VERSION" \
+                   --install-location / "dist/DetailForge-$VERSION.pkg"
+
+      # ---------- wrap the .pkg in a .dmg (mount, then double-click the .pkg to install) ----------
+      # Runs for both signed and unsigned paths; both produce dist/DetailForge-<version>.pkg.
+      - name: Wrap .pkg in a .dmg
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          PKG="$(ls dist/DetailForge-*.pkg 2>/dev/null | head -1)"
+          test -n "$PKG" || { echo "::error::no .pkg found to wrap"; exit 1; }
+          STAGE="$(mktemp -d)"
+          cp "$PKG" "$STAGE/"
+          hdiutil create -volname "Detail Forge $VERSION" -srcfolder "$STAGE" \
+                         -ov -format UDZO "dist/DetailForge-$VERSION.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
           name: DetailForge-macOS-${{ steps.ver.outputs.version }}
           path: dist/
           if-no-files-found: error
+
+      # ---------- on a version tag, publish the installer to a GitHub Release (permanent download link) ----------
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          SIGNED: ${{ steps.sign.outputs.have }}
+        run: |
+          if [ "$SIGNED" = "true" ]; then
+            NOTE='Signed & notarized macOS installer (.pkg inside .dmg). Universal (Intel + Apple Silicon). Mount the .dmg and run the .pkg — installs VST3 + AU.'
+          else
+            NOTE='Unsigned macOS installer (.pkg inside .dmg). Universal (Intel + Apple Silicon), installs VST3 + AU. Gatekeeper will warn on an unsigned installer: right-click the .pkg and choose Open, or run  xattr -dr com.apple.quarantine <file>  first.'
+          fi
+          gh release create "${{ github.ref_name }}" dist/*.dmg dist/*.pkg \
+            --title "Detail Forge $VERSION" --notes "$NOTE" \
+          || gh release upload "${{ github.ref_name }}" dist/*.dmg dist/*.pkg --clobber
