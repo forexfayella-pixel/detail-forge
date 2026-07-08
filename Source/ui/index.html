@@ -216,7 +216,7 @@
     <div class="aboutBrand">YANTRA <b>AUDIO</b></div>
     <div class="aboutSub">Creative Audio Plugins</div>
     <div class="aboutDiv"></div>
-    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.15</span></div>
+    <div class="aboutProduct">Detail&nbsp;Forge <span class="aboutVer">v0.16</span></div>
     <div class="aboutDesc">Detail-preserving <b style="color:#F2953A;font-weight:600;">saturator → clipper → limiter</b>.<br>High-pass foldback clipping with a true-peak lookahead limiter.</div>
     <div class="aboutBtns">
       <button data-act="github">GitHub&nbsp;↗</button>
@@ -234,10 +234,13 @@ import * as Juce from "./juce/index.js";
 // play/stop. Fix: blur any focused control right after a click, and if Space/Enter arrives while a
 // control IS focused, swallow it + blur (so it never toggles) — otherwise let it pass to the host.
 document.addEventListener("pointerup", function(){ const a=document.activeElement; if(a && a!==document.body && a.blur) a.blur(); }, true);
+let _hs=null,_hsInit=false;
+function _hostSpace(){ if(!_hsInit){ _hsInit=true; try{ _hs = Juce.getNativeFunction ? Juce.getNativeFunction("hostSpace") : null; }catch(e){} } return _hs; }
 window.addEventListener("keydown", function(e){
   if(e.code==="Space" || e.code==="Enter" || e.code==="NumpadEnter"){
-    const a=document.activeElement;
-    if(a && a!==document.body){ e.preventDefault(); if(a.blur) a.blur(); }
+    const a=document.activeElement; if(a && a!==document.body && a.blur) a.blur();  // don't toggle a focused control
+    e.preventDefault();
+    if(e.code==="Space"){ const f=_hostSpace(); if(f) f(); }   // hand Space to the DAW (play/stop)
   }
 }, true);
 

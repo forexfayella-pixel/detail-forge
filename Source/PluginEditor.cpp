@@ -2,6 +2,13 @@
 #include "BinaryData.h"
 #include <array>
 
+#if JUCE_WINDOWS
+ #ifndef NOMINMAX
+  #define NOMINMAX
+ #endif
+ #include <windows.h>   // GetAncestor / PostMessage — forward Space to the host (transport)
+#endif
+
 namespace
 {
     // Continuous params -> WebSliderRelay. Choice params -> WebComboBoxRelay.
@@ -52,6 +59,23 @@ DetailForgeEditor::DetailForgeEditor (DetailForgeProcessor& p)
             [] (const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion complete)
             {
                 juce::File::getSpecialLocation (juce::File::currentApplicationFile).revealToUser();
+                complete (juce::var());
+            })
+        // Hand the spacebar to the host (transport). JUCE's WebView2 wrapper never forwards keys to
+        // the parent, so the DAW never sees Space while the plugin is focused. Post it to the
+        // top-level window (the host), which typically owns the play/stop shortcut. Best-effort +
+        // host-dependent; PostMessage targets the host proc directly, so it can't loop back to us.
+        .withNativeFunction (juce::Identifier ("hostSpace"),
+            [this] (const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion complete)
+            {
+               #if JUCE_WINDOWS
+                if (auto* peer = getPeer())
+                    if (auto* root = GetAncestor ((HWND) peer->getNativeHandle(), GA_ROOT))
+                    {
+                        ::PostMessage (root, WM_KEYDOWN, VK_SPACE, 0);
+                        ::PostMessage (root, WM_KEYUP,   VK_SPACE, 0);
+                    }
+               #endif
                 complete (juce::var());
             });
 
