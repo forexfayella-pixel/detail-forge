@@ -454,11 +454,8 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         }
     }
 
-    buffer.applyGainRamp (0, numSamples, prevOutGain, og);   // per-sample ramp (anti-zipper)
-    prevOutGain = og;
-
-    // Stage 3 — true-peak lookahead limiter (final ceiling), at base rate. Its lookahead adds to
-    // the reported latency; when disabled it adds none and the GR meter reads 0.
+    // Stage 3 — true-peak lookahead limiter (ceiling), at base rate. Its lookahead adds to the
+    // reported latency; when disabled it adds none and the GR meter reads 0.
     if (limEnabled && numChannels > 0)
     {
         float* ch[2] = { buffer.getWritePointer (0),
@@ -469,6 +466,12 @@ void DetailForgeProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     }
     else
         grDb.store (0.0f);
+
+    // Final Output trim — applied AFTER the limiter so the knob truly sets the output level. (The
+    // limiter normalizes peaks to its ceiling, so gain applied *before* it would only drive the
+    // limiter harder and leave the output unchanged.)
+    buffer.applyGainRamp (0, numSamples, prevOutGain, og);
+    prevOutGain = og;
 
     if (reportedLatency != lastReportedLatency)
     {
